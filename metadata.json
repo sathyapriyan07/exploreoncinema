@@ -1,0 +1,5 @@
+{
+  "name": "CineTrack",
+  "description": "A production-ready movie and series platform with TMDB integration and Supabase backend.",
+  "requestFramePermissions": []
+}
