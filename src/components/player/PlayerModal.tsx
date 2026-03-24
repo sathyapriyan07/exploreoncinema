@@ -94,7 +94,22 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
   const togglePlay = () => { post({ action: playing ? 'pause' : 'play' }); setPlaying(p => !p); showControls(); };
   const toggleMute = () => { post({ action: muted ? 'unmute' : 'mute' }); setMuted(m => !m); showControls(); };
   const seekBy     = (delta: number) => { post({ action: 'seek', time: currentTime + delta }); showControls(); };
-  const fullscreen = () => wrapperRef.current?.requestFullscreen?.();
+  const fullscreen = async () => {
+    try {
+      await wrapperRef.current?.requestFullscreen?.();
+      await (screen.orientation as any)?.lock?.('landscape');
+    } catch {}
+  };
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) {
+        (screen.orientation as any)?.unlock?.();
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSeeking(true);
