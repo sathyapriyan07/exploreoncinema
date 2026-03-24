@@ -24,30 +24,33 @@ export default function SeriesDetails() {
   if (!series) return <div className="text-center py-20">Series not found</div>;
 
   return (
-    <div className="pb-20">
-      <div className="relative h-[70vh] md:h-screen w-full overflow-hidden">
-        <img
-          src={tmdb.getImageUrl(series.backdrop_path, 'original')}
-          alt={series.name}
-          className="h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden md:block" />
+    <div className="pb-20 pt-20">
+      {/* Hero — rounded rectangle */}
+      <div className="px-4 md:px-8">
+        <div className="relative w-full h-[220px] md:h-[360px] rounded-3xl overflow-hidden">
+          <img
+            src={tmdb.getImageUrl(series.backdrop_path, 'original')}
+            alt={series.name}
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        </div>
       </div>
 
-      <div className="container mx-auto -mt-40 px-4 relative z-10">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-56 shrink-0 mx-auto md:mx-0">
+      <div className="container mx-auto px-4 mt-6 relative z-10">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Poster */}
+          <div className="w-44 md:w-56 shrink-0 mx-auto md:mx-0 -mt-20 md:-mt-28 relative z-10">
             <img
               src={tmdb.getImageUrl(series.poster_path)}
               alt={series.name}
-              className="rounded-2xl shadow-2xl border border-white/10"
+              className="rounded-2xl shadow-2xl border border-white/10 w-full"
               referrerPolicy="no-referrer"
             />
           </div>
 
-          <div className="flex-1 text-white">
+          <div className="flex-1 text-white pt-4 md:pt-4">
             <h1 className="text-4xl font-black mb-2">{series.name}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-6">
               <span className="flex items-center gap-1 text-yellow-500 font-bold">
