@@ -10,7 +10,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function CardTrailerModal({ id, type, onClose }: Props) {
+export function ExpandedCard({ id, type, onClose }: Props) {
   const navigate = useNavigate();
 
   const { data } = useQuery({
@@ -24,14 +24,8 @@ export function CardTrailerModal({ id, type, onClose }: Props) {
   const logoUrl = logo ? tmdb.getImageUrl(logo.file_path, 'original') : null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-2xl rounded-3xl overflow-hidden bg-black shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="w-full px-4 md:px-8 pb-2 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="relative rounded-3xl overflow-hidden bg-zinc-900 shadow-2xl border border-white/10">
         {data ? (
           <TrailerHero
             videos={data.videos}
@@ -41,7 +35,7 @@ export function CardTrailerModal({ id, type, onClose }: Props) {
             logo={logoUrl}
           />
         ) : (
-          <div className="h-[220px] md:h-[420px] bg-zinc-900 animate-pulse rounded-3xl" />
+          <div className="h-[220px] md:h-[360px] bg-zinc-900 animate-pulse" />
         )}
 
         <button
@@ -55,7 +49,7 @@ export function CardTrailerModal({ id, type, onClose }: Props) {
         {data && (
           <div className="p-4 flex items-start justify-between gap-3">
             <div>
-              <h2 className="font-bold text-white text-lg leading-tight">{title}</h2>
+              <h2 className="font-bold text-white text-base leading-tight">{title}</h2>
               <p className="text-white/50 text-xs mt-1 line-clamp-2">{data.overview}</p>
             </div>
             <button

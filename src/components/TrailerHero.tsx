@@ -9,6 +9,7 @@ interface TrailerHeroProps {
   zoom?: number;
   logo?: string | null;
   onEnded?: () => void;
+  paused?: boolean;
 }
 
 const QUALITIES = [
@@ -19,14 +20,24 @@ const QUALITIES = [
   { label: '360p', vq: 'medium' },
 ];
 
-export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded }: TrailerHeroProps) {
+export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded, paused }: TrailerHeroProps) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
   const [showQuality, setShowQuality] = useState(false);
   const [ready, setReady] = useState(false);
+  const [inView, setInView] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const initialLoad = useRef(true);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold: 0.2 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const trailer =
     videos?.results?.find((v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) ??
@@ -63,6 +74,12 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
     postCommand(playing ? 'playVideo' : 'pauseVideo');
   }, [playing]);
 
+  useEffect(() => {
+    if (initialLoad.current) return;
+    const shouldPlay = playing && inView && !paused;
+    postCommand(shouldPlay ? 'playVideo' : 'pauseVideo');
+  }, [inView, paused]);
+
   // Listen for YouTube player state 0 = ended
   useEffect(() => {
     if (!onEnded) return;
@@ -81,7 +98,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
 
   if (!trailer) {
     return (
-      <div className="px-4 md:px-8">
+      <div ref={containerRef} className="px-4 md:px-8">
         <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
           <img
             src={tmdb.getImageUrl(backdrop_path, 'original')}
@@ -101,7 +118,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
   }
 
   return (
-    <div className="px-4 md:px-8">
+    <div ref={containerRef} className="px-4 md:px-8">
       <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
         {!ready && <div className="absolute inset-0 z-10 bg-black" />}
         <div className="absolute inset-0 overflow-hidden" style={{ transform: `scale(${zoom})` }}>
