@@ -10,6 +10,7 @@ interface TrailerHeroProps {
   logo?: string | null;
   onEnded?: () => void;
   paused?: boolean;
+  logoSize?: 'sm' | 'md';
 }
 
 const QUALITIES = [
@@ -20,7 +21,7 @@ const QUALITIES = [
   { label: '360p', vq: 'medium' },
 ];
 
-export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded, paused }: TrailerHeroProps) {
+export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded, paused, logoSize = 'md' }: TrailerHeroProps) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
@@ -109,7 +110,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           {logo && (
             <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
-              <img src={logo} alt={title} className="h-5 md:h-7 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+              <img src={logo} alt={title} className={`${logoSize === 'sm' ? 'h-4 md:h-5' : 'h-5 md:h-7'} w-auto object-contain drop-shadow-2xl`} referrerPolicy="no-referrer" />
             </div>
           )}
         </div>
@@ -142,7 +143,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
         {/* Logo — bottom left, tiny */}
         {logo && (
           <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
-            <img src={logo} alt={title} className="h-5 md:h-7 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+            <img src={logo} alt={title} className={`${logoSize === 'sm' ? 'h-4 md:h-5' : 'h-5 md:h-7'} w-auto object-contain drop-shadow-2xl`} referrerPolicy="no-referrer" />
           </div>
         )}
 

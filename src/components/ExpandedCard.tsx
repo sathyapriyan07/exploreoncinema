@@ -24,8 +24,8 @@ export function ExpandedCard({ id, type, onClose }: Props) {
   const logoUrl = logo ? tmdb.getImageUrl(logo.file_path, 'original') : null;
 
   return (
-    <div className="w-full px-4 md:px-8 pb-2 animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="relative rounded-3xl overflow-hidden bg-zinc-900 shadow-2xl border border-white/10">
+    <div className="w-full pb-2 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="relative rounded-3xl overflow-hidden bg-zinc-900 shadow-2xl border border-white/10 mx-4 md:mx-8">
         {data ? (
           <TrailerHero
             videos={data.videos}
@@ -33,9 +33,10 @@ export function ExpandedCard({ id, type, onClose }: Props) {
             title={title}
             zoom={1.4}
             logo={logoUrl}
+            logoSize="sm"
           />
         ) : (
-          <div className="h-[220px] md:h-[360px] bg-zinc-900 animate-pulse" />
+          <div className="h-[200px] bg-zinc-900 animate-pulse" />
         )}
 
         <button
@@ -47,16 +48,16 @@ export function ExpandedCard({ id, type, onClose }: Props) {
         </button>
 
         {data && (
-          <div className="p-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-bold text-white text-base leading-tight">{title}</h2>
-              <p className="text-white/50 text-xs mt-1 line-clamp-2">{data.overview}</p>
+          <div className="p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-bold text-white text-sm leading-tight line-clamp-1">{title}</h2>
+              <p className="text-white/50 text-xs mt-0.5 line-clamp-2">{data.overview}</p>
             </div>
             <button
               onClick={() => navigate(`/${type}/${id}`)}
-              className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-black text-xs font-semibold hover:bg-white/90 transition-colors"
+              className="self-start sm:self-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-black text-xs font-semibold hover:bg-white/90 transition-colors"
             >
-              <Info className="h-3.5 w-3.5" />
+              <Info className="h-3 w-3" />
               More Info
             </button>
           </div>
