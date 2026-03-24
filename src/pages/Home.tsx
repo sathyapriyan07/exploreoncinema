@@ -1,17 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { tmdb } from '@/src/services/tmdb';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react'; // useMemo used in Home for heroKey
 import { Plus, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
-import { Typewriter } from '@/src/components/ui/typewriter';
+import { TrailerHero } from '@/src/components/TrailerHero';
 
 // ─── MovieRow ─────────────────────────────────────────────────────────────────
 function MovieRow({ title, data, loading, type }: { title: string; data: any; loading: boolean; type: 'movie' | 'tv' }) {
@@ -48,136 +46,111 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
   );
 }
 
-// ─── CinematicHero ────────────────────────────────────────────────────────────
-function CinematicHero({ items }: { items: any[] }) {
-  const [idx, setIdx] = useState(0);
+// ─── HeroSlide ────────────────────────────────────────────────────────────────
+function HeroSlide({ item, onPrev, onNext }: { item: any; onPrev: () => void; onNext: () => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const type = item?.title ? 'movie' : 'tv';
 
-  useEffect(() => {
-    const t = setInterval(() => setIdx(p => (p + 1) % items.length), 8000);
-    return () => clearInterval(t);
-  }, [items.length]);
-
-  const current = items[idx];
-  const type = current?.title ? 'movie' : 'tv';
-
-  // Stable query key — doesn't change on every slide
-  const { data: watchlistItems } = useQuery({
-    queryKey: ['watchlist-hero', user?.id],
+  const { data: watchlistStatus } = useQuery({
+    queryKey: ['watchlist-hero-item', item?.id, user?.id],
     queryFn: async () => {
-      if (!user || !supabase) return [];
-      const ids = items.map(i => String(i.id));
-      const { data } = await supabase.from('watchlist').select('content_id').eq('user_id', user.id).in('content_id', ids);
-      return data?.map(d => d.content_id) ?? [];
+      if (!user || !supabase) return null;
+      const { data } = await supabase.from('watchlist').select('id').eq('user_id', user.id).eq('content_id', String(item.id)).single();
+      return data;
     },
-    enabled: !!user && items.length > 0,
+    enabled: !!user && !!item,
     staleTime: 1000 * 60 * 2,
   });
-
-  const watchlistStatus = useMemo(
-    () => watchlistItems?.includes(String(current?.id)),
-    [watchlistItems, current?.id]
-  );
 
   const toggleWatchlist = useMutation({
     mutationFn: async () => {
       if (!user || !supabase) throw new Error('Please sign in first');
       if (watchlistStatus) {
-        await supabase.from('watchlist').delete().eq('user_id', user.id).eq('content_id', String(current.id));
+        await supabase.from('watchlist').delete().eq('id', watchlistStatus.id);
       } else {
-        await supabase.from('watchlist').insert({ user_id: user.id, content_id: String(current.id), content_type: type, status: 'plan_to_watch' });
+        await supabase.from('watchlist').insert({ user_id: user.id, content_id: String(item.id), content_type: type, status: 'plan_to_watch' });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist-hero', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist-hero-item', item?.id, user?.id] });
       toast.success(watchlistStatus ? 'Removed from watchlist' : 'Added to watchlist');
     },
     onError: (err: any) => toast.error(err.message),
   });
 
-  if (!current) return <Skeleton className="h-screen w-full" />;
-
-  const title = current.title || current.name;
-  const logo = current.images?.logos?.find((l: any) => l.iso_639_1 === 'en') || current.images?.logos?.[0];
+  const title = item.title || item.name;
+  const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? item.images?.logos?.[0];
 
   return (
     <div
-      className="relative h-[55vh] md:h-screen w-full overflow-hidden cursor-pointer"
-      onTouchStart={(e) => { const x = e.touches[0].clientX; (e.currentTarget as any)._touchX = x; }}
+      className="relative"
+      onTouchStart={(e) => { (e.currentTarget as any)._touchX = e.touches[0].clientX; }}
       onTouchEnd={(e) => {
         const diff = (e.currentTarget as any)._touchX - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 50) setIdx(p => diff > 0 ? (p + 1) % items.length : (p - 1 + items.length) % items.length);
+        if (Math.abs(diff) > 50) diff > 0 ? onNext() : onPrev();
       }}
     >
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={current.id}
-          src={tmdb.getImageUrl(current.backdrop_path, 'original')}
-          alt={title}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6 }}
-          className="absolute inset-0 h-full w-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      </AnimatePresence>
+      <TrailerHero videos={item.videos} backdrop_path={item.backdrop_path} title={title} />
 
-      {/* Gradients */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
-
-      {/* Clickable backdrop */}
-      <Link to={`/${type}/${current.id}`} className="absolute inset-0" />
-
-      {/* Content */}
-      <div className="absolute bottom-0 left-0 px-6 md:px-12 pb-24 md:pb-20 max-w-2xl">
-        <p className="text-xs md:text-sm font-medium text-white/50 mb-3 tracking-widest uppercase">
-          <Typewriter
-            text={['discover movies', 'track your watchlist', 'rate your favorites', 'explore cinematic worlds', 'find your next obsession']}
-            speed={55}
-            deleteSpeed={30}
-            waitTime={1800}
-            cursorChar="_"
-            cursorClassName="text-yellow-400"
-          />
-        </p>
+      {/* Overlay content */}
+      <div className="absolute bottom-6 left-0 px-8 md:px-16 max-w-2xl z-20 pointer-events-none">
         {logo ? (
-          <Link to={`/${type}/${current.id}`}>
-            <img
-              src={tmdb.getImageUrl(logo.file_path, 'original')}
-              alt={title}
-              className="h-20 md:h-28 w-auto object-contain mb-5 drop-shadow-2xl"
-              referrerPolicy="no-referrer"
-            />
-          </Link>
+          <img
+            src={tmdb.getImageUrl(logo.file_path, 'original')}
+            alt={title}
+            className="h-16 md:h-24 w-auto object-contain mb-4 drop-shadow-2xl"
+            referrerPolicy="no-referrer"
+          />
         ) : (
-          <Link to={`/${type}/${current.id}`}>
-            <h1 className="font-display text-5xl md:text-7xl font-black text-white mb-5 leading-none hover:underline">{title}</h1>
-          </Link>
+          <h1 className="font-display text-4xl md:text-6xl font-black text-white mb-4 leading-none drop-shadow-2xl">{title}</h1>
         )}
-        <p className="text-sm md:text-base text-white/70 line-clamp-3 mb-6 leading-relaxed">
-          {current.overview}
-        </p>
-        <div className="flex items-center gap-3 relative z-10">
+        <p className="text-sm md:text-base text-white/70 line-clamp-2 mb-5 leading-relaxed drop-shadow">{item.overview}</p>
+        <div className="flex items-center gap-3 pointer-events-auto">
           <button
-            onClick={(e) => { e.preventDefault(); toggleWatchlist.mutate(); }}
-            className="flex items-center gap-2 px-7 py-3 bg-white/15 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/25 transition-colors border border-white/20"
+            onClick={() => toggleWatchlist.mutate()}
+            className="flex items-center gap-2 px-6 py-2.5 bg-white/15 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/25 transition-colors border border-white/20"
           >
             <Plus className="h-4 w-4" />
             {watchlistStatus ? 'In Watchlist' : 'Watchlist'}
           </button>
           <Link
-            to={`/${type}/${current.id}`}
-            className="flex items-center gap-2 px-7 py-3 bg-white/10 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/20 transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            to={`/${type}/${item.id}`}
+            className="flex items-center gap-2 px-6 py-2.5 bg-white/10 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/20 transition-colors"
           >
             <Info className="h-4 w-4" /> More Info
           </Link>
         </div>
       </div>
+
+      {/* Prev / Next arrows */}
+      <button onClick={onPrev} className="absolute left-10 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors" aria-label="Previous">
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <button onClick={onNext} className="absolute right-10 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors" aria-label="Next">
+        <ChevronRight className="h-5 w-5" />
+      </button>
     </div>
+  );
+}
+
+// ─── CinematicHero ────────────────────────────────────────────────────────────
+function CinematicHero({ items }: { items: any[] }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx(p => (p + 1) % items.length), 12000);
+    return () => clearInterval(t);
+  }, [items.length]);
+
+  if (!items[idx]) return <Skeleton className="h-[220px] md:h-[420px] w-full rounded-3xl mx-4" />;
+
+  return (
+    <HeroSlide
+      item={items[idx]}
+      onPrev={() => setIdx(p => (p - 1 + items.length) % items.length)}
+      onNext={() => setIdx(p => (p + 1) % items.length)}
+    />
   );
 }
 
@@ -235,7 +208,7 @@ export default function Home() {
         <Skeleton className="h-screen w-full" />
       )}
 
-      <div className="-mt-16 md:-mt-24 relative z-10">
+      <div className="relative z-10 mt-6">
         {user && continueWatching && continueWatching.length > 0 && (
           <MovieRow title="Continue Watching" data={{ results: continueWatching }} loading={false} type="movie" />
         )}

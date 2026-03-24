@@ -21,6 +21,7 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
   const [showQuality, setShowQuality] = useState(false);
+  const [ready, setReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   // Track whether this is the initial load (skip postMessage on first mount)
   const initialLoad = useRef(true);
@@ -41,12 +42,14 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
   const handleLoad = () => {
     if (initialLoad.current) {
       initialLoad.current = false;
+      setTimeout(() => setReady(true), 1000);
       return;
     }
     // Small delay to let the player initialise
     setTimeout(() => {
       postCommand(muted ? 'mute' : 'unMute');
       postCommand(playing ? 'playVideo' : 'pauseVideo');
+      setReady(true);
     }, 800);
   };
 
@@ -61,7 +64,7 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
   }, [playing]);
 
   const buildSrc = (vq: string) =>
-    `https://www.youtube.com/embed/${trailer!.key}?autoplay=1&mute=1&loop=1&playlist=${trailer!.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}${vq ? `&vq=${vq}` : ''}`;
+    `https://www.youtube.com/embed/${trailer!.key}?autoplay=1&mute=1&loop=1&playlist=${trailer!.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&color=white${vq ? `&vq=${vq}` : ''}`;
 
   if (!trailer) {
     return (
@@ -82,6 +85,7 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
   return (
     <div className="px-4 md:px-8">
       <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
+        {!ready && <div className="absolute inset-0 z-10 bg-black" />}
         <div className="absolute inset-0 scale-[1.15] overflow-hidden">
           <iframe
             ref={iframeRef}
@@ -111,9 +115,9 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
                   <button
                     key={q.label}
                     onClick={() => {
+                      setReady(false);
                       setQuality(q);
                       setShowQuality(false);
-                      // src change via key forces reload with new vq
                     }}
                     className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-white/10 ${
                       quality.label === q.label ? 'text-yellow-400' : 'text-white/80'
