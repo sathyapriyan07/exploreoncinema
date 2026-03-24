@@ -28,7 +28,6 @@ const fmt = (s: number) => {
 
 export function PlayerModal({ id, type, title, season, episode, onClose }: Props) {
   const storageKey = STORAGE_KEY(id, type, season, episode);
-  const savedProgress = Number(localStorage.getItem(storageKey) ?? 0);
 
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -44,22 +43,15 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
   const wrapperRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const embedUrl = getEmbedUrl(id, type, season, episode);
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const embedUrl = getEmbedUrl(
-    id, type,
-    { autoPlay: true, nextEpisode: type === 'tv', episodeSelector: type === 'tv', progress: savedProgress },
-    season, episode
-  );
-
-  // Post commands to Vidking iframe
   const post = useCallback((cmd: object) => {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify(cmd), '*');
   }, []);
 
   const handleClose = useCallback(() => onClose(), [onClose]);
 
-  // ESC + scroll lock
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', onKey);
@@ -70,7 +62,6 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
     };
   }, [handleClose]);
 
-  // Vidking postMessage events
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const evt = parsePlayerEvent(e);
@@ -81,27 +72,29 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
         if (Math.floor(evt.currentTime) % 5 === 0)
           localStorage.setItem(storageKey, String(Math.floor(evt.currentTime)));
       }
-      if (evt.event === 'play')   setPlaying(true);
-      if (evt.event === 'pause')  setPlaying(false);
-      if (evt.event === 'ended')  { setPlaying(false); localStorage.removeItem(storageKey); }
+      if (evt.event === 'play')  setPlaying(true);
+      if (evt.event === 'pause') setPlaying(false);
+      if (evt.event === 'ended') { setPlaying(false); localStorage.removeItem(storageKey); }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [storageKey]);
 
-  // Auto-hide controls after 3 s of inactivity
   const showControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setControlsVisible(false), 3000);
   }, []);
 
-  useEffect(() => { showControls(); return () => { if (hideTimer.current) clearTimeout(hideTimer.current); }; }, [showControls]);
+  useEffect(() => {
+    showControls();
+    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
+  }, [showControls]);
 
-  const togglePlay  = () => { post({ action: playing ? 'pause' : 'play' }); setPlaying(p => !p); showControls(); };
-  const toggleMute  = () => { post({ action: muted ? 'unmute' : 'mute' }); setMuted(m => !m); showControls(); };
-  const seekBy      = (delta: number) => { post({ action: 'seek', time: currentTime + delta }); showControls(); };
-  const fullscreen  = () => { wrapperRef.current?.requestFullscreen?.(); };
+  const togglePlay = () => { post({ action: playing ? 'pause' : 'play' }); setPlaying(p => !p); showControls(); };
+  const toggleMute = () => { post({ action: muted ? 'unmute' : 'mute' }); setMuted(m => !m); showControls(); };
+  const seekBy     = (delta: number) => { post({ action: 'seek', time: currentTime + delta }); showControls(); };
+  const fullscreen = () => wrapperRef.current?.requestFullscreen?.();
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSeeking(true);
@@ -124,7 +117,6 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
       onMouseMove={showControls}
       onTouchStart={showControls}
     >
-      {/* ── iframe ── */}
       <div className="relative flex-1 overflow-hidden">
 
         {/* Loading */}
@@ -143,7 +135,7 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
           </div>
         )}
 
-        {/* Vidking iframe — fills entire area, its own controls hidden under our overlay */}
+        {/* Vidking iframe */}
         {!error && (
           <iframe
             ref={iframeRef}
@@ -160,17 +152,17 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
           />
         )}
 
-        {/* ── Controls overlay ── */}
+        {/* Controls overlay */}
         {loaded && (
           <div
             className={`absolute inset-0 flex flex-col justify-between transition-opacity duration-300 ${
               controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           >
-            {/* Top bar — title + close */}
-            <div className="flex items-center justify-between px-4 pt-4 pb-8 bg-gradient-to-b from-black/80 to-transparent">
+            {/* Top — title + close */}
+            <div className="flex items-center justify-between px-4 pt-4 pb-10 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-white font-semibold text-sm truncate drop-shadow">{title}</span>
+                <span className="text-white font-semibold text-sm truncate">{title}</span>
                 {season != null && episode != null && (
                   <span className="shrink-0 px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-xs">
                     S{season} · E{episode}
@@ -186,76 +178,49 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
               </button>
             </div>
 
-            {/* Bottom bar — seek + buttons */}
-            <div className="px-4 pb-4 pt-8 bg-gradient-to-t from-black/80 to-transparent">
+            {/* Bottom — seek + buttons */}
+            <div className="px-4 pb-4 pt-10 bg-gradient-to-t from-black/80 to-transparent">
 
               {/* Seek bar */}
               {duration > 0 && (
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-white/60 text-xs tabular-nums w-10 shrink-0">{fmt(currentTime)}</span>
-                  <div className="relative flex-1 h-1 group">
+                  <div className="relative flex-1 h-1">
                     <div className="absolute inset-0 rounded-full bg-white/20" />
                     <div
                       className="absolute left-0 top-0 h-full bg-white rounded-full pointer-events-none"
                       style={{ width: `${displayProgress}%` }}
                     />
                     <input
-                      type="range"
-                      min={0} max={100} step={0.1}
+                      type="range" min={0} max={100} step={0.1}
                       value={displayProgress}
                       onChange={handleSeekChange}
                       onMouseUp={handleSeekCommit}
                       onTouchEnd={handleSeekCommit as any}
-                      className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   </div>
                   <span className="text-white/60 text-xs tabular-nums w-10 shrink-0 text-right">{fmt(duration)}</span>
                 </div>
               )}
 
-              {/* Buttons row */}
+              {/* Buttons */}
               <div className="flex items-center justify-between">
-                {/* Left: play controls */}
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => seekBy(-10)}
-                    className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                    aria-label="Rewind 10s"
-                  >
+                  <button onClick={() => seekBy(-10)} className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors" aria-label="Rewind 10s">
                     <RotateCcw className="h-4 w-4" />
                   </button>
-
-                  <button
-                    onClick={togglePlay}
-                    className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-black hover:bg-white/90 transition-colors"
-                    aria-label={playing ? 'Pause' : 'Play'}
-                  >
+                  <button onClick={togglePlay} className="h-10 w-10 rounded-full bg-white flex items-center justify-center text-black hover:bg-white/90 transition-colors" aria-label={playing ? 'Pause' : 'Play'}>
                     {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-0.5" />}
                   </button>
-
-                  <button
-                    onClick={() => seekBy(10)}
-                    className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                    aria-label="Forward 10s"
-                  >
+                  <button onClick={() => seekBy(10)} className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors" aria-label="Forward 10s">
                     <RotateCw className="h-4 w-4" />
                   </button>
-
-                  <button
-                    onClick={toggleMute}
-                    className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                    aria-label={muted ? 'Unmute' : 'Mute'}
-                  >
+                  <button onClick={toggleMute} className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors" aria-label={muted ? 'Unmute' : 'Mute'}>
                     {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                   </button>
                 </div>
-
-                {/* Right: fullscreen */}
-                <button
-                  onClick={fullscreen}
-                  className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  aria-label="Fullscreen"
-                >
+                <button onClick={fullscreen} className="h-9 w-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/70 transition-colors" aria-label="Fullscreen">
                   <Maximize2 className="h-4 w-4" />
                 </button>
               </div>
