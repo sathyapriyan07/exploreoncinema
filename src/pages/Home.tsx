@@ -5,7 +5,7 @@ import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { Play, Plus, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -83,7 +83,6 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
 // ─── CinematicHero ────────────────────────────────────────────────────────────
 function CinematicHero({ items }: { items: any[] }) {
   const [idx, setIdx] = useState(0);
-  const [muted, setMuted] = useState(true);
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -93,8 +92,6 @@ function CinematicHero({ items }: { items: any[] }) {
   }, [items.length]);
 
   const current = items[idx];
-  const trailer = current?.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube') ||
-                  current?.videos?.results?.find((v: any) => v.site === 'YouTube');
 
   const { data: watchlistStatus } = useQuery({
     queryKey: ['watchlist', current?.id, user?.id],
@@ -140,21 +137,12 @@ function CinematicHero({ items }: { items: any[] }) {
           transition={{ duration: 1 }}
           className="absolute inset-0"
         >
-          {trailer ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=${muted ? 1 : 0}&controls=0&loop=1&playlist=${trailer.key}&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`}
-              className="absolute inset-0 w-full h-full scale-[1.15] pointer-events-none"
-              allow="autoplay; encrypted-media"
-              title="trailer"
-            />
-          ) : (
-            <img
+          <img
               src={tmdb.getImageUrl(current.backdrop_path, 'original')}
               alt={title}
               className="h-full w-full object-cover"
               referrerPolicy="no-referrer"
             />
-          )}
         </motion.div>
       </AnimatePresence>
 
@@ -178,12 +166,6 @@ function CinematicHero({ items }: { items: any[] }) {
           {current.overview}
         </p>
         <div className="flex items-center gap-3">
-          <Link
-            to={`/${type}/${current.id}`}
-            className="flex items-center gap-2 px-7 py-3 bg-white text-black rounded-full font-bold text-sm hover:bg-white/90 transition-colors"
-          >
-            <Play className="h-4 w-4 fill-black" /> Play Now
-          </Link>
           <button
             onClick={() => toggleWatchlist.mutate()}
             className="flex items-center gap-2 px-7 py-3 bg-white/15 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/25 transition-colors border border-white/20"

@@ -5,7 +5,7 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Button } from '@/src/components/ui/button';
-import { Star, Plus, Check, MessageSquare, Sparkles, Film, Play } from 'lucide-react';
+import { Star, Plus, Check, MessageSquare, Sparkles, Film } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { ContentCard } from '@/src/components/cards/ContentCard';
@@ -97,30 +97,16 @@ export default function MovieDetails() {
   if (isLoading) return <div className="container mx-auto p-8"><Skeleton className="h-[60vh] w-full rounded-3xl" /></div>;
   if (!movie) return <div className="text-center py-20">Movie not found</div>;
 
-  const trailer = movie.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube' && v.key) || 
-                  movie.videos?.results?.find((v: any) => v.type === 'Teaser' && v.site === 'YouTube' && v.key);
-
   return (
     <div className="pb-20">
       {/* Hero Backdrop */}
       <div className="relative h-[70vh] md:h-screen w-full overflow-hidden">
-        {trailer ? (
-          <div className="absolute inset-0 w-full h-full scale-110">
-            <iframe
-              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailer.key}&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&disablekb=1&fs=0&autohide=1&playsinline=1`}
-              className="w-full h-full pointer-events-none"
-              allow="autoplay; encrypted-media"
-              title="Trailer"
-            />
-          </div>
-        ) : (
-          <img
-            src={tmdb.getImageUrl(movie.backdrop_path, 'original')}
-            alt={movie.title}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        )}
+        <img
+          src={tmdb.getImageUrl(movie.backdrop_path, 'original')}
+          alt={movie.title}
+          className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden md:block" />
       </div>

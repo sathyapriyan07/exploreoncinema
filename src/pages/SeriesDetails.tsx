@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdb } from '@/src/services/tmdb';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { Star, ChevronRight, Sparkles, Tv, Play } from 'lucide-react';
+import { Star, ChevronRight, Sparkles, Tv } from 'lucide-react';
 import {
   Tabs,
   TabsContent,
@@ -23,29 +23,15 @@ export default function SeriesDetails() {
   if (isLoading) return <div className="container mx-auto p-8"><Skeleton className="h-[60vh] w-full rounded-3xl" /></div>;
   if (!series) return <div className="text-center py-20">Series not found</div>;
 
-  const trailer = series.videos?.results?.find((v: any) => v.type === 'Trailer' && v.site === 'YouTube' && v.key) || 
-                  series.videos?.results?.find((v: any) => v.type === 'Teaser' && v.site === 'YouTube' && v.key);
-
   return (
     <div className="pb-20">
       <div className="relative h-[70vh] md:h-screen w-full overflow-hidden">
-        {trailer ? (
-          <div className="absolute inset-0 w-full h-full scale-110">
-            <iframe
-              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailer.key}&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&disablekb=1&fs=0&autohide=1&playsinline=1`}
-              className="w-full h-full pointer-events-none"
-              allow="autoplay; encrypted-media"
-              title="Trailer"
-            />
-          </div>
-        ) : (
-          <img
-            src={tmdb.getImageUrl(series.backdrop_path, 'original')}
-            alt={series.name}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        )}
+        <img
+          src={tmdb.getImageUrl(series.backdrop_path, 'original')}
+          alt={series.name}
+          className="h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden md:block" />
       </div>
