@@ -56,9 +56,11 @@ export function PlayerModal({ id, type, title, season, episode, onClose }: Props
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('player-open');
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      document.body.classList.remove('player-open');
     };
   }, [handleClose]);
 

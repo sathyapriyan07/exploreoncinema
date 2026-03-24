@@ -38,6 +38,10 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+body.player-open #bottom-nav {
+  display: none;
+}
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
