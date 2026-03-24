@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Volume2, VolumeX, Play, Pause, Settings } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, Settings, RotateCcw, RotateCw, Captions, CaptionsOff } from 'lucide-react';
 import { tmdb } from '@/src/services/tmdb';
 
 interface TrailerHeroProps {
@@ -29,6 +29,8 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
   const [showQuality, setShowQuality] = useState(false);
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(true);
+  const [captions, setCaptions] = useState(false);
+  const currentTime = useRef(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const initialLoad = useRef(true);
@@ -56,12 +58,16 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
   const handleLoad = () => {
     if (initialLoad.current) {
       initialLoad.current = false;
-      setTimeout(() => setReady(true), 1000);
+      setTimeout(() => {
+        postCommand('addEventListener', ['onStateChange']);
+        setReady(true);
+      }, 1000);
       return;
     }
     setTimeout(() => {
-      postCommand(muted ? 'mute' : 'unMute');
+      postCommand('mute');
       postCommand(playing ? 'playVideo' : 'pauseVideo');
+      postCommand('addEventListener', ['onStateChange']);
       setReady(true);
     }, 800);
   };
@@ -82,21 +88,33 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
     postCommand(shouldPlay ? 'playVideo' : 'pauseVideo');
   }, [inView, paused]);
 
-  // Listen for YouTube player state 0 = ended
+  // Track current time from YouTube infoDelivery
   useEffect(() => {
-    if (!onEnded) return;
     const handler = (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data);
-        if (data.event === 'infoDelivery' && data.info?.playerState === 0) onEnded();
+        if (data.event === 'infoDelivery' && data.info?.currentTime != null)
+          currentTime.current = data.info.currentTime;
+        if (data.event === 'infoDelivery' && data.info?.playerState === 0) onEnded?.();
       } catch {}
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [onEnded]);
 
+  const seek = (delta: number) => postCommand('seekTo', [currentTime.current + delta, true]);
+
+  const toggleCaptions = () => {
+    if (captions) {
+      postCommand('setOption', ['captions', 'track', {}]);
+    } else {
+      postCommand('setOption', ['captions', 'track', { languageCode: 'en' }]);
+    }
+    setCaptions(c => !c);
+  };
+
   const buildSrc = (vq: string) =>
-    `https://www.youtube.com/embed/${trailer!.key}?autoplay=1&mute=1&loop=0&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}${vq ? `&vq=${vq}` : ''}`;
+    `https://www.youtube.com/embed/${trailer!.key}?autoplay=1&mute=1&loop=0&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1&cc_load_policy=0&origin=${encodeURIComponent(window.location.origin)}${vq ? `&vq=${vq}` : ''}`;
 
   if (!trailer) {
     return (
@@ -149,7 +167,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
         )}
 
         {/* Controls */}
-        <div className="absolute bottom-4 right-4 z-10 flex items-end gap-2">
+        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
 
           {/* Quality popover */}
           <div className="relative">
@@ -182,6 +200,10 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
             </button>
           </div>
 
+          <button onClick={() => seek(-10)} className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors" aria-label="Rewind 10s">
+            <RotateCcw className="h-4 w-4" />
+          </button>
+
           <button
             onClick={() => setPlaying(p => !p)}
             className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
@@ -190,12 +212,28 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </button>
 
+          <button onClick={() => seek(10)} className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors" aria-label="Forward 10s">
+            <RotateCw className="h-4 w-4" />
+          </button>
+
           <button
             onClick={() => setMuted(m => !m)}
             className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
             aria-label={muted ? 'Unmute' : 'Mute'}
           >
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+
+          <button
+            onClick={toggleCaptions}
+            className={`h-9 w-9 rounded-full backdrop-blur-sm border flex items-center justify-center transition-colors ${
+              captions
+                ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30'
+                : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
+            }`}
+            aria-label={captions ? 'Disable subtitles' : 'Enable subtitles'}
+          >
+            {captions ? <Captions className="h-4 w-4" /> : <CaptionsOff className="h-4 w-4" />}
           </button>
         </div>
       </div>
