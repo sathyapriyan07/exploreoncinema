@@ -128,7 +128,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           {logo && (
-            <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
+            <div className="absolute bottom-5 inset-x-0 flex justify-center z-20 pointer-events-none">
               <img src={logo} alt={title} className={`${logoSize === 'sm' ? 'h-4 md:h-5' : 'h-5 md:h-7'} w-auto object-contain drop-shadow-2xl`} referrerPolicy="no-referrer" />
             </div>
           )}
@@ -159,82 +159,80 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-        {/* Logo — bottom left, tiny */}
-        {logo && (
-          <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
-            <img src={logo} alt={title} className={`${logoSize === 'sm' ? 'h-4 md:h-5' : 'h-5 md:h-7'} w-auto object-contain drop-shadow-2xl`} referrerPolicy="no-referrer" />
-          </div>
-        )}
+        {/* Logo + Controls — centered at bottom */}
+        <div className="absolute bottom-4 inset-x-0 z-10 flex flex-col items-center gap-3">
 
-        {/* Controls */}
-        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+          {/* Logo */}
+          {logo && (
+            <img src={logo} alt={title} className={`${logoSize === 'sm' ? 'h-4 md:h-5' : 'h-5 md:h-7'} w-auto object-contain drop-shadow-2xl pointer-events-none`} referrerPolicy="no-referrer" />
+          )}
 
-          {/* Quality popover */}
-          <div className="relative">
-            {showQuality && (
-              <div className="absolute bottom-11 right-0 bg-black/90 backdrop-blur-sm border border-white/20 rounded-xl overflow-hidden min-w-[90px]">
-                {QUALITIES.map((q) => (
-                  <button
-                    key={q.label}
-                    onClick={() => {
-                      setReady(false);
-                      setQuality(q);
-                      setShowQuality(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-white/10 ${
-                      quality.label === q.label ? 'text-yellow-400' : 'text-white/80'
-                    }`}
-                  >
-                    {q.label}
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* Buttons row */}
+          <div className="flex items-center gap-2">
+
+            {/* Quality popover */}
+            <div className="relative">
+              {showQuality && (
+                <div className="absolute bottom-11 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-sm border border-white/20 rounded-xl overflow-hidden min-w-[90px]">
+                  {QUALITIES.map((q) => (
+                    <button
+                      key={q.label}
+                      onClick={() => { setReady(false); setQuality(q); setShowQuality(false); }}
+                      className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-white/10 ${
+                        quality.label === q.label ? 'text-yellow-400' : 'text-white/80'
+                      }`}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setShowQuality(s => !s)}
+                className="h-9 px-3 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center gap-1.5 text-white hover:bg-black/80 transition-colors text-xs font-medium"
+                aria-label="Quality"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                {quality.label}
+              </button>
+            </div>
+
+            <button onClick={() => seek(-10)} className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors" aria-label="Rewind 10s">
+              <RotateCcw className="h-4 w-4" />
+            </button>
+
             <button
-              onClick={() => setShowQuality(s => !s)}
-              className="h-9 px-3 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center gap-1.5 text-white hover:bg-black/80 transition-colors text-xs font-medium"
-              aria-label="Quality"
+              onClick={() => setPlaying(p => !p)}
+              className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+              aria-label={playing ? 'Pause' : 'Play'}
             >
-              <Settings className="h-3.5 w-3.5" />
-              {quality.label}
+              {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </button>
+
+            <button onClick={() => seek(10)} className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors" aria-label="Forward 10s">
+              <RotateCw className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={() => setMuted(m => !m)}
+              className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+              aria-label={muted ? 'Unmute' : 'Mute'}
+            >
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+
+            <button
+              onClick={toggleCaptions}
+              className={`h-9 w-9 rounded-full backdrop-blur-sm border flex items-center justify-center transition-colors ${
+                captions
+                  ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30'
+                  : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
+              }`}
+              aria-label={captions ? 'Disable subtitles' : 'Enable subtitles'}
+            >
+              {captions ? <Captions className="h-4 w-4" /> : <CaptionsOff className="h-4 w-4" />}
             </button>
           </div>
-
-          <button onClick={() => seek(-10)} className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors" aria-label="Rewind 10s">
-            <RotateCcw className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={() => setPlaying(p => !p)}
-            className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
-            aria-label={playing ? 'Pause' : 'Play'}
-          >
-            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </button>
-
-          <button onClick={() => seek(10)} className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors" aria-label="Forward 10s">
-            <RotateCw className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={() => setMuted(m => !m)}
-            className="h-9 w-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/80 transition-colors"
-            aria-label={muted ? 'Unmute' : 'Mute'}
-          >
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
-
-          <button
-            onClick={toggleCaptions}
-            className={`h-9 w-9 rounded-full backdrop-blur-sm border flex items-center justify-center transition-colors ${
-              captions
-                ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/30'
-                : 'bg-black/60 border-white/20 text-white hover:bg-black/80'
-            }`}
-            aria-label={captions ? 'Disable subtitles' : 'Enable subtitles'}
-          >
-            {captions ? <Captions className="h-4 w-4" /> : <CaptionsOff className="h-4 w-4" />}
-          </button>
         </div>
       </div>
     </div>
