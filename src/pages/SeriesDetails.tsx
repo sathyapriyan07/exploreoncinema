@@ -5,7 +5,7 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Button } from '@/src/components/ui/button';
-import { Star, Sparkles, Tv, MessageSquare, UserCircle2 } from 'lucide-react';
+import { Star, Sparkles, Tv, MessageSquare, UserCircle2, Plus, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -13,13 +13,51 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/src/components/ui/tabs";
+} from '@/src/components/ui/tabs';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
 } from '@/src/components/ui/table';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
+
+function TrailerHero({ series }: { series: any }) {
+  const trailer = series.videos?.results?.find(
+    (v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
+  ) ?? series.videos?.results?.find(
+    (v: any) => v.site === 'YouTube' && v.type === 'Trailer'
+  ) ?? series.videos?.results?.find(
+    (v: any) => v.site === 'YouTube'
+  );
+
+  return (
+    <div className="px-4 md:px-8">
+      <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
+        {trailer ? (
+          <>
+            <iframe
+              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&loop=1&playlist=${trailer.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=0`}
+              allow="autoplay; encrypted-media"
+              allowFullScreen={false}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ border: 'none' }}
+              title={series.name}
+            />
+            <div className="absolute inset-0" />
+          </>
+        ) : (
+          <img
+            src={tmdb.getImageUrl(series.backdrop_path, 'original')}
+            alt={series.name}
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+      </div>
+    </div>
+  );
+}
 
 export default function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +70,21 @@ export default function SeriesDetails() {
     queryKey: ['series', id],
     queryFn: () => tmdb.getSeriesDetails(id!),
     enabled: !!id,
+  });
+
+  const { data: watchlistStatus } = useQuery({
+    queryKey: ['watchlist', id, user?.id],
+    queryFn: async () => {
+      if (!user || !supabase) return null;
+      const { data } = await supabase
+        .from('watchlist')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('content_id', id)
+        .single();
+      return data;
+    },
+    enabled: !!user && !!id && !!supabase,
   });
 
   const { data: reviews } = useQuery({
@@ -47,6 +100,27 @@ export default function SeriesDetails() {
       return data ?? [];
     },
     enabled: !!id && !!supabase,
+  });
+
+  const toggleWatchlist = useMutation({
+    mutationFn: async () => {
+      if (!user || !supabase) throw new Error('Please sign in first');
+      if (watchlistStatus) {
+        await supabase.from('watchlist').delete().eq('id', watchlistStatus.id);
+      } else {
+        await supabase.from('watchlist').insert({
+          user_id: user.id,
+          content_id: id,
+          content_type: 'series',
+          status: 'plan_to_watch',
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['watchlist', id, user?.id] });
+      toast.success(watchlistStatus ? 'Removed from watchlist' : 'Added to watchlist');
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const submitReview = useMutation({
@@ -75,51 +149,43 @@ export default function SeriesDetails() {
 
   return (
     <div className="pb-20 pt-20">
-      {/* Hero — rounded rectangle */}
-      <div className="px-4 md:px-8">
-        <div className="relative w-full h-[220px] md:h-[360px] rounded-3xl overflow-hidden">
-          <img
-            src={tmdb.getImageUrl(series.backdrop_path, 'original')}
-            alt={series.name}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-        </div>
-      </div>
+      <TrailerHero series={series} />
 
-      <div className="container mx-auto px-4 mt-6 relative z-10">
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Poster */}
-          <div className="w-44 md:w-56 shrink-0 mx-auto md:mx-0 -mt-20 md:-mt-28 relative z-10">
-            <img
-              src={tmdb.getImageUrl(series.poster_path)}
-              alt={series.name}
-              className="rounded-2xl shadow-2xl border border-white/10 w-full"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-
-          <div className="flex-1 text-white pt-4 md:pt-4">
-            <h1 className="text-4xl font-black mb-2">{series.name}</h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-6">
-              <span className="flex items-center gap-1 text-yellow-500 font-bold">
-                <Star className="h-4 w-4 fill-yellow-500" />
-                {series.vote_average.toFixed(1)}
-              </span>
-              <span>{series.first_air_date?.split('-')[0]}</span>
-              <span>{series.number_of_seasons} Seasons</span>
+      <div className="container mx-auto px-4 mt-8 relative z-10">
+        {/* Title + meta — no poster overlay */}
+        <div className="max-w-3xl mb-8">
+          <h1 className="text-4xl font-black mb-3">{series.name}</h1>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-5">
+            <span className="flex items-center gap-1 text-yellow-500 font-bold">
+              <Star className="h-4 w-4 fill-yellow-500" />
+              {series.vote_average.toFixed(1)}
+            </span>
+            <span>{series.first_air_date?.split('-')[0]}</span>
+            <span>{series.number_of_seasons} Seasons</span>
+            <div className="flex gap-2 flex-wrap">
+              {series.genres?.map((g: any) => (
+                <span key={g.id} className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">
+                  {g.name}
+                </span>
+              ))}
             </div>
-            <p className="text-lg text-white/80 leading-relaxed mb-8 max-w-3xl">
-              {series.overview}
-            </p>
-
-            <StreamingProviders tmdbId={id!} type="tv" />
           </div>
+          <p className="text-base text-white/80 leading-relaxed mb-6">{series.overview}</p>
+          <div className="flex flex-wrap gap-4 mb-4">
+            <Button
+              onClick={() => toggleWatchlist.mutate()}
+              variant={watchlistStatus ? 'secondary' : 'default'}
+              className="rounded-full px-8"
+            >
+              {watchlistStatus ? <Check className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+              {watchlistStatus ? 'In Watchlist' : 'Add to Watchlist'}
+            </Button>
+          </div>
+          <StreamingProviders tmdbId={id!} type="tv" />
         </div>
 
         {/* Cast */}
-        <section className="mt-16">
+        <section className="mt-12">
           <h2 className="text-2xl font-bold mb-6">Top Cast</h2>
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {series.credits?.cast?.slice(0, 10).map((person: any) => (
@@ -144,8 +210,8 @@ export default function SeriesDetails() {
           <Tabs defaultValue="1" className="w-full">
             <TabsList className="bg-zinc-900 border border-white/10 p-1 mb-8 overflow-x-auto flex justify-start">
               {series.seasons?.map((season: any) => (
-                <TabsTrigger 
-                  key={season.id} 
+                <TabsTrigger
+                  key={season.id}
                   value={season.season_number.toString()}
                   className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-black"
                 >
@@ -153,7 +219,7 @@ export default function SeriesDetails() {
                 </TabsTrigger>
               ))}
             </TabsList>
-            
+
             {series.seasons?.map((season: any) => (
               <TabsContent key={season.id} value={season.season_number.toString()}>
                 <SeasonEpisodes seriesId={id!} seasonNumber={season.season_number} />
@@ -330,14 +396,11 @@ function SeasonEpisodes({ seriesId, seasonNumber }: { seriesId: string; seasonNu
         <TableBody>
           {season?.episodes?.map((episode: any) => (
             <TableRow key={episode.id} className="cursor-pointer">
-              {/* Episode number */}
               <TableCell>
                 <span className="text-white/30 text-xs font-mono font-bold">
                   {String(episode.episode_number).padStart(2, '0')}
                 </span>
               </TableCell>
-
-              {/* Still + title + overview */}
               <TableCell>
                 <Link
                   to={`/tv/${seriesId}/season/${seasonNumber}/episode/${episode.episode_number}`}
@@ -347,6 +410,7 @@ function SeasonEpisodes({ seriesId, seasonNumber }: { seriesId: string; seasonNu
                     <img
                       src={tmdb.getImageUrl(episode.still_path)}
                       alt={episode.name}
+                      loading="lazy"
                       className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
                     />
@@ -361,13 +425,9 @@ function SeasonEpisodes({ seriesId, seasonNumber }: { seriesId: string; seasonNu
                   </div>
                 </Link>
               </TableCell>
-
-              {/* Air date */}
               <TableCell className="hidden sm:table-cell">
                 <span className="text-[11px] text-white/40">{episode.air_date}</span>
               </TableCell>
-
-              {/* Rating */}
               <TableCell>
                 {episode.vote_average > 0 ? (
                   <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm">

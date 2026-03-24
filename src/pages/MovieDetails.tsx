@@ -11,6 +11,45 @@ import { useState } from 'react';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 
+function TrailerHero({ movie }: { movie: any }) {
+  const trailer = movie.videos?.results?.find(
+    (v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
+  ) ?? movie.videos?.results?.find(
+    (v: any) => v.site === 'YouTube' && v.type === 'Trailer'
+  ) ?? movie.videos?.results?.find(
+    (v: any) => v.site === 'YouTube'
+  );
+
+  return (
+    <div className="px-4 md:px-8">
+      <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
+        {trailer ? (
+          <>
+            <iframe
+              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&loop=1&playlist=${trailer.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=0`}
+              allow="autoplay; encrypted-media"
+              allowFullScreen={false}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ border: 'none' }}
+              title={movie.title}
+            />
+            {/* Invisible overlay to block YouTube click-through */}
+            <div className="absolute inset-0" />
+          </>
+        ) : (
+          <img
+            src={tmdb.getImageUrl(movie.backdrop_path, 'original')}
+            alt={movie.title}
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+      </div>
+    </div>
+  );
+}
+
 export default function MovieDetails() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -101,71 +140,43 @@ export default function MovieDetails() {
 
   return (
     <div className="pb-20 pt-20">
-      {/* Hero — rounded rectangle */}
-      <div className="px-4 md:px-8">
-        <div className="relative w-full h-[220px] md:h-[360px] rounded-3xl overflow-hidden">
-          <img
-            src={tmdb.getImageUrl(movie.backdrop_path, 'original')}
-            alt={movie.title}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-        </div>
-      </div>
+      <TrailerHero movie={movie} />
 
-      <div className="container mx-auto px-4 mt-6 relative z-10">
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Poster */}
-          <div className="w-44 md:w-56 shrink-0 mx-auto md:mx-0 -mt-20 md:-mt-28 relative z-10">
-            <img
-              src={tmdb.getImageUrl(movie.poster_path)}
-              alt={movie.title}
-              className="rounded-2xl shadow-2xl border border-white/10 w-full"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-
-          {/* Details */}
-          <div className="flex-1 text-white pt-4 md:pt-4">
-            <h1 className="text-4xl md:text-5xl font-black mb-2">{movie.title}</h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-6">
-              <span className="flex items-center gap-1 text-yellow-500 font-bold">
-                <Star className="h-4 w-4 fill-yellow-500" />
-                {movie.vote_average.toFixed(1)}
-              </span>
-              <span>{movie.release_date?.split('-')[0]}</span>
-              <span>{movie.runtime} min</span>
-              <div className="flex gap-2">
-                {movie.genres?.map((g: any) => (
-                  <span key={g.id} className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">
-                    {g.name}
-                  </span>
-                ))}
-              </div>
+      <div className="container mx-auto px-4 mt-8 relative z-10">
+        {/* Title + meta — no poster overlay */}
+        <div className="max-w-3xl mb-8">
+          <h1 className="text-4xl md:text-5xl font-black mb-3">{movie.title}</h1>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-5">
+            <span className="flex items-center gap-1 text-yellow-500 font-bold">
+              <Star className="h-4 w-4 fill-yellow-500" />
+              {movie.vote_average.toFixed(1)}
+            </span>
+            <span>{movie.release_date?.split('-')[0]}</span>
+            <span>{movie.runtime} min</span>
+            <div className="flex gap-2 flex-wrap">
+              {movie.genres?.map((g: any) => (
+                <span key={g.id} className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">
+                  {g.name}
+                </span>
+              ))}
             </div>
-
-            <p className="text-lg text-white/80 leading-relaxed mb-8 max-w-3xl">
-              {movie.overview}
-            </p>
-
-            <div className="flex flex-wrap gap-4">
-              <Button 
-                onClick={() => toggleWatchlist.mutate()}
-                variant={watchlistStatus ? "secondary" : "default"}
-                className="rounded-full px-8"
-              >
-                {watchlistStatus ? <Check className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
-                {watchlistStatus ? "In Watchlist" : "Add to Watchlist"}
-              </Button>
-            </div>
-
-            <StreamingProviders tmdbId={id!} type="movie" />
           </div>
+          <p className="text-base text-white/80 leading-relaxed mb-6">{movie.overview}</p>
+          <div className="flex flex-wrap gap-4">
+            <Button
+              onClick={() => toggleWatchlist.mutate()}
+              variant={watchlistStatus ? 'secondary' : 'default'}
+              className="rounded-full px-8"
+            >
+              {watchlistStatus ? <Check className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+              {watchlistStatus ? 'In Watchlist' : 'Add to Watchlist'}
+            </Button>
+          </div>
+          <StreamingProviders tmdbId={id!} type="movie" />
         </div>
 
         {/* Cast */}
-        <section className="mt-16">
+        <section className="mt-12">
           <h2 className="text-2xl font-bold mb-6">Top Cast</h2>
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {movie.credits?.cast?.slice(0, 10).map((person: any) => (
@@ -248,7 +259,7 @@ export default function MovieDetails() {
                 placeholder="What did you think of the movie?"
                 className="w-full bg-zinc-800 border border-white/10 rounded-xl p-4 text-sm outline-none focus:ring-2 ring-primary/50 min-h-[100px]"
               />
-              <Button 
+              <Button
                 onClick={() => submitReview.mutate()}
                 className="mt-4 rounded-full"
                 disabled={submitReview.isPending}
@@ -287,9 +298,7 @@ export default function MovieDetails() {
                     {review.rating}
                   </div>
                 </div>
-                <p className="text-white/80 text-sm leading-relaxed">
-                  {review.review_text}
-                </p>
+                <p className="text-white/80 text-sm leading-relaxed">{review.review_text}</p>
               </div>
             ))}
             {reviews?.length === 0 && (
