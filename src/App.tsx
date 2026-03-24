@@ -3,23 +3,27 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/src/components/ui/sonner';
 import { AuthProvider } from '@/src/hooks/useAuth';
 import { Layout } from '@/src/components/common/Layout';
-import Home from '@/src/pages/Home';
-import Movies from '@/src/pages/Movies';
-import TVShows from '@/src/pages/TVShows';
-import MovieDetails from '@/src/pages/MovieDetails';
-import SeriesDetails from '@/src/pages/SeriesDetails';
-import EpisodeDetails from '@/src/pages/EpisodeDetails';
-import PersonDetails from '@/src/pages/PersonDetails';
-import Search from '@/src/pages/Search';
-import Profile from '@/src/pages/Profile';
-import Watchlist from '@/src/pages/Watchlist';
-import Auth from '@/src/pages/Auth';
+import { lazy, Suspense } from 'react';
+
+const Home = lazy(() => import('@/src/pages/Home'));
+const Movies = lazy(() => import('@/src/pages/Movies'));
+const TVShows = lazy(() => import('@/src/pages/TVShows'));
+const MovieDetails = lazy(() => import('@/src/pages/MovieDetails'));
+const SeriesDetails = lazy(() => import('@/src/pages/SeriesDetails'));
+const EpisodeDetails = lazy(() => import('@/src/pages/EpisodeDetails'));
+const PersonDetails = lazy(() => import('@/src/pages/PersonDetails'));
+const Search = lazy(() => import('@/src/pages/Search'));
+const Profile = lazy(() => import('@/src/pages/Profile'));
+const Watchlist = lazy(() => import('@/src/pages/Watchlist'));
+const Auth = lazy(() => import('@/src/pages/Auth'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
+      staleTime: 1000 * 60 * 10,
+      gcTime: 1000 * 60 * 30,
       retry: 1,
+      refetchOnWindowFocus: false,
     },
   },
 });
@@ -30,6 +34,7 @@ export default function App() {
       <AuthProvider>
         <Router>
           <Layout>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/movies" element={<Movies />} />
@@ -43,6 +48,7 @@ export default function App() {
               <Route path="/watchlist" element={<Watchlist />} />
               <Route path="/auth" element={<Auth />} />
             </Routes>
+            </Suspense>
           </Layout>
           <Toaster position="top-center" theme="dark" richColors />
         </Router>

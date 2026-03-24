@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Movie, TVSeries } from '@/src/types';
 import { tmdb } from '@/src/services/tmdb';
 import { Star } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface ContentCardProps {
   item: Movie | TVSeries;
@@ -14,16 +13,14 @@ export function ContentCard({ item, type }: ContentCardProps) {
   const date = 'release_date' in item ? item.release_date : item.first_air_date;
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      transition={{ duration: 0.2 }}
-      className="group relative overflow-hidden rounded-xl bg-zinc-900 shadow-lg"
-    >
+    <div className="group relative overflow-hidden rounded-xl bg-zinc-900 shadow-lg transition-transform duration-200 will-change-transform hover:scale-105">
       <Link to={`/${type}/${item.id}`}>
         <div className="aspect-[2/3] w-full overflow-hidden">
           <img
             src={tmdb.getImageUrl(item.poster_path)}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
             referrerPolicy="no-referrer"
           />
@@ -40,6 +37,6 @@ export function ContentCard({ item, type }: ContentCardProps) {
           </div>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }

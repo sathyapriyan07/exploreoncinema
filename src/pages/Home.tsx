@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import { tmdb } from '@/src/services/tmdb';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
 import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
 import { Typewriter } from '@/src/components/ui/typewriter';
 
@@ -61,29 +60,37 @@ function CinematicHero({ items }: { items: any[] }) {
   }, [items.length]);
 
   const current = items[idx];
+  const type = current?.title ? 'movie' : 'tv';
 
-  const { data: watchlistStatus } = useQuery({
-    queryKey: ['watchlist', current?.id, user?.id],
+  // Stable query key — doesn't change on every slide
+  const { data: watchlistItems } = useQuery({
+    queryKey: ['watchlist-hero', user?.id],
     queryFn: async () => {
-      if (!user || !supabase) return null;
-      const { data } = await supabase.from('watchlist').select('*').eq('user_id', user.id).eq('content_id', String(current.id)).single();
-      return data;
+      if (!user || !supabase) return [];
+      const ids = items.map(i => String(i.id));
+      const { data } = await supabase.from('watchlist').select('content_id').eq('user_id', user.id).in('content_id', ids);
+      return data?.map(d => d.content_id) ?? [];
     },
-    enabled: !!user && !!current?.id && !!supabase,
+    enabled: !!user && items.length > 0,
+    staleTime: 1000 * 60 * 2,
   });
+
+  const watchlistStatus = useMemo(
+    () => watchlistItems?.includes(String(current?.id)),
+    [watchlistItems, current?.id]
+  );
 
   const toggleWatchlist = useMutation({
     mutationFn: async () => {
       if (!user || !supabase) throw new Error('Please sign in first');
-      const type = current.title ? 'movie' : 'tv';
       if (watchlistStatus) {
-        await supabase.from('watchlist').delete().eq('id', watchlistStatus.id);
+        await supabase.from('watchlist').delete().eq('user_id', user.id).eq('content_id', String(current.id));
       } else {
         await supabase.from('watchlist').insert({ user_id: user.id, content_id: String(current.id), content_type: type, status: 'plan_to_watch' });
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist', current?.id, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist-hero', user?.id] });
       toast.success(watchlistStatus ? 'Removed from watchlist' : 'Added to watchlist');
     },
     onError: (err: any) => toast.error(err.message),
@@ -91,7 +98,6 @@ function CinematicHero({ items }: { items: any[] }) {
 
   if (!current) return <Skeleton className="h-screen w-full" />;
 
-  const type = current.title ? 'movie' : 'tv';
   const title = current.title || current.name;
   const logo = current.images?.logos?.find((l: any) => l.iso_639_1 === 'en') || current.images?.logos?.[0];
 
@@ -105,21 +111,17 @@ function CinematicHero({ items }: { items: any[] }) {
       }}
     >
       <AnimatePresence mode="wait">
-        <motion.div
+        <motion.img
           key={current.id}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
+          src={tmdb.getImageUrl(current.backdrop_path, 'original')}
+          alt={title}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-          className="absolute inset-0"
-        >
-          <img
-              src={tmdb.getImageUrl(current.backdrop_path, 'original')}
-              alt={title}
-              className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-        </motion.div>
+          transition={{ duration: 0.6 }}
+          className="absolute inset-0 h-full w-full object-cover"
+          referrerPolicy="no-referrer"
+        />
       </AnimatePresence>
 
       {/* Gradients */}
@@ -131,16 +133,9 @@ function CinematicHero({ items }: { items: any[] }) {
 
       {/* Content */}
       <div className="absolute bottom-0 left-0 px-6 md:px-12 pb-24 md:pb-20 max-w-2xl">
-        {/* Typewriter tagline */}
         <p className="text-xs md:text-sm font-medium text-white/50 mb-3 tracking-widest uppercase">
           <Typewriter
-            text={[
-              'discover movies',
-              'track your watchlist',
-              'rate your favorites',
-              'explore cinematic worlds',
-              'find your next obsession',
-            ]}
+            text={['discover movies', 'track your watchlist', 'rate your favorites', 'explore cinematic worlds', 'find your next obsession']}
             speed={55}
             deleteSpeed={30}
             waitTime={1800}
@@ -182,8 +177,6 @@ function CinematicHero({ items }: { items: any[] }) {
           </Link>
         </div>
       </div>
-
-      {/* Indicators - hidden, touch/auto only */}
     </div>
   );
 }
@@ -195,12 +188,15 @@ export default function Home() {
   const { data: trending, isLoading: trendingLoading } = useQuery({
     queryKey: ['trending'],
     queryFn: () => tmdb.getTrending('all'),
+    staleTime: 1000 * 60 * 15,
   });
 
-  // Fetch details for top 5 trending to get videos/images
+  // Stable key: sort ids so order changes don't bust cache
   const top5 = trending?.results?.slice(0, 5) ?? [];
+  const heroKey = useMemo(() => top5.map((i: any) => i.id).sort().join(','), [top5]);
+
   const { data: heroItems } = useQuery({
-    queryKey: ['heroDetails', top5.map((i: any) => i.id).join(',')],
+    queryKey: ['heroDetails', heroKey],
     queryFn: () =>
       Promise.all(
         top5.map((item: any) =>
@@ -210,6 +206,7 @@ export default function Home() {
         )
       ),
     enabled: top5.length > 0,
+    staleTime: 1000 * 60 * 15,
   });
 
   const { data: continueWatching } = useQuery({
@@ -222,17 +219,16 @@ export default function Home() {
     enabled: !!user && !!supabase,
   });
 
-  const { data: nowPlayingMovies, isLoading: pmLoading } = useQuery({ queryKey: ['nowPlaying'], queryFn: () => tmdb.getNowPlayingMovies() });
-  const { data: onAirSeries, isLoading: psLoading } = useQuery({ queryKey: ['onTheAir'], queryFn: () => tmdb.getOnTheAirSeries() });
-  const { data: latestMovies, isLoading: lmLoading } = useQuery({ queryKey: ['upcomingMovies'], queryFn: () => tmdb.getUpcomingMovies() });
-  const { data: actionMovies, isLoading: amLoading } = useQuery({ queryKey: ['actionMovies'], queryFn: () => tmdb.getMoviesByGenre('28') });
-  const { data: comedyMovies, isLoading: cmLoading } = useQuery({ queryKey: ['comedyMovies'], queryFn: () => tmdb.getMoviesByGenre('35') });
-  const { data: animeMovies, isLoading: animeMLoading } = useQuery({ queryKey: ['animeMovies'], queryFn: () => tmdb.discoverMovies({ with_genres: '16', sort_by: 'popularity.desc' }) });
-  const { data: animeSeries, isLoading: animeSLoading } = useQuery({ queryKey: ['animeSeries'], queryFn: () => tmdb.discoverMovies({ with_genres: '16', sort_by: 'popularity.desc' }) });
+  const { data: nowPlayingMovies, isLoading: pmLoading } = useQuery({ queryKey: ['nowPlaying'], queryFn: () => tmdb.getNowPlayingMovies(), staleTime: 1000 * 60 * 30 });
+  const { data: onAirSeries, isLoading: psLoading } = useQuery({ queryKey: ['onTheAir'], queryFn: () => tmdb.getOnTheAirSeries(), staleTime: 1000 * 60 * 30 });
+  const { data: latestMovies, isLoading: lmLoading } = useQuery({ queryKey: ['upcomingMovies'], queryFn: () => tmdb.getUpcomingMovies(), staleTime: 1000 * 60 * 30 });
+  const { data: actionMovies, isLoading: amLoading } = useQuery({ queryKey: ['actionMovies'], queryFn: () => tmdb.getMoviesByGenre('28'), staleTime: 1000 * 60 * 60 });
+  const { data: comedyMovies, isLoading: cmLoading } = useQuery({ queryKey: ['comedyMovies'], queryFn: () => tmdb.getMoviesByGenre('35'), staleTime: 1000 * 60 * 60 });
+  const { data: animeMovies, isLoading: animeMLoading } = useQuery({ queryKey: ['animeMovies'], queryFn: () => tmdb.discoverMovies({ with_genres: '16', sort_by: 'popularity.desc' }), staleTime: 1000 * 60 * 60 });
+  const { data: animeSeries, isLoading: animeSLoading } = useQuery({ queryKey: ['animeSeries'], queryFn: () => tmdb.discoverMovies({ with_genres: '16', sort_by: 'popularity.desc' }), staleTime: 1000 * 60 * 60 });
 
   return (
     <div className="bg-black">
-      {/* Cinematic Hero */}
       {heroItems && heroItems.length > 0 ? (
         <CinematicHero items={heroItems} />
       ) : (
@@ -240,7 +236,6 @@ export default function Home() {
       )}
 
       <div className="-mt-16 md:-mt-24 relative z-10">
-        {/* Continue Watching */}
         {user && continueWatching && continueWatching.length > 0 && (
           <MovieRow title="Continue Watching" data={{ results: continueWatching }} loading={false} type="movie" />
         )}
@@ -256,7 +251,6 @@ export default function Home() {
         <MovieRow title="Action Movies" data={actionMovies} loading={amLoading} type="movie" />
         <MovieRow title="Comedy Movies" data={comedyMovies} loading={cmLoading} type="movie" />
 
-        {/* Footer */}
         <footer className="mt-16 border-t border-white/10 py-10 px-6 md:px-12">
           <p className="text-white/30 text-sm text-center">
             © {new Date().getFullYear()} SceneFinds. Powered by TMDB API.
