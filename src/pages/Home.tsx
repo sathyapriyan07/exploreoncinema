@@ -12,6 +12,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
+import { NowPlayingNearYou } from '@/src/components/NowPlayingNearYou';
 
 // ─── MovieRow ─────────────────────────────────────────────────────────────────
 function MovieRow({ title, data, loading, type }: { title: string; data: any; loading: boolean; type: 'movie' | 'tv' }) {
@@ -228,6 +229,8 @@ export default function Home() {
         )}
 
         <WeatherRecommendations />
+
+        <NowPlayingNearYou />
 
         <MovieRow title="Trending Now" data={trending} loading={trendingLoading} type="movie" />
         <MovieRow title="Now Playing" data={nowPlayingMovies} loading={pmLoading} type="movie" />
