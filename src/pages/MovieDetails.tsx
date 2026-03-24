@@ -10,45 +10,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
 import { ContentCard } from '@/src/components/cards/ContentCard';
-
-function TrailerHero({ movie }: { movie: any }) {
-  const trailer = movie.videos?.results?.find(
-    (v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
-  ) ?? movie.videos?.results?.find(
-    (v: any) => v.site === 'YouTube' && v.type === 'Trailer'
-  ) ?? movie.videos?.results?.find(
-    (v: any) => v.site === 'YouTube'
-  );
-
-  return (
-    <div className="px-4 md:px-8">
-      <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
-        {trailer ? (
-          <>
-            <iframe
-              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&loop=1&playlist=${trailer.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=0`}
-              allow="autoplay; encrypted-media"
-              allowFullScreen={false}
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{ border: 'none' }}
-              title={movie.title}
-            />
-            {/* Invisible overlay to block YouTube click-through */}
-            <div className="absolute inset-0" />
-          </>
-        ) : (
-          <img
-            src={tmdb.getImageUrl(movie.backdrop_path, 'original')}
-            alt={movie.title}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-      </div>
-    </div>
-  );
-}
+import { TrailerHero } from '@/src/components/TrailerHero';
 
 export default function MovieDetails() {
   const { id } = useParams<{ id: string }>();
@@ -140,7 +102,7 @@ export default function MovieDetails() {
 
   return (
     <div className="pb-20 pt-20">
-      <TrailerHero movie={movie} />
+      <TrailerHero videos={movie.videos} backdrop_path={movie.backdrop_path} title={movie.title} />
 
       <div className="container mx-auto px-4 mt-8 relative z-10">
         {/* Title + meta — no poster overlay */}

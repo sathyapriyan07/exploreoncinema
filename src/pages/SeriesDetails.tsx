@@ -20,44 +20,7 @@ import {
   TableHeader, TableRow,
 } from '@/src/components/ui/table';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
-
-function TrailerHero({ series }: { series: any }) {
-  const trailer = series.videos?.results?.find(
-    (v: any) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
-  ) ?? series.videos?.results?.find(
-    (v: any) => v.site === 'YouTube' && v.type === 'Trailer'
-  ) ?? series.videos?.results?.find(
-    (v: any) => v.site === 'YouTube'
-  );
-
-  return (
-    <div className="px-4 md:px-8">
-      <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
-        {trailer ? (
-          <>
-            <iframe
-              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&loop=1&playlist=${trailer.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=0`}
-              allow="autoplay; encrypted-media"
-              allowFullScreen={false}
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{ border: 'none' }}
-              title={series.name}
-            />
-            <div className="absolute inset-0" />
-          </>
-        ) : (
-          <img
-            src={tmdb.getImageUrl(series.backdrop_path, 'original')}
-            alt={series.name}
-            className="h-full w-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-      </div>
-    </div>
-  );
-}
+import { TrailerHero } from '@/src/components/TrailerHero';
 
 export default function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -149,7 +112,7 @@ export default function SeriesDetails() {
 
   return (
     <div className="pb-20 pt-20">
-      <TrailerHero series={series} />
+      <TrailerHero videos={series.videos} backdrop_path={series.backdrop_path} title={series.name} />
 
       <div className="container mx-auto px-4 mt-8 relative z-10">
         {/* Title + meta — no poster overlay */}
