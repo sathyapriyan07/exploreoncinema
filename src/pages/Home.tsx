@@ -11,6 +11,8 @@ import { supabase } from '@/src/services/supabase';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
+import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
+
 // ─── MovieRow ─────────────────────────────────────────────────────────────────
 function MovieRow({ title, data, loading, type }: { title: string; data: any; loading: boolean; type: 'movie' | 'tv' }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -224,6 +226,8 @@ export default function Home() {
         {user && continueWatching && continueWatching.length > 0 && (
           <MovieRow title="Continue Watching" data={{ results: continueWatching }} loading={false} type="movie" />
         )}
+
+        <WeatherRecommendations />
 
         <MovieRow title="Trending Now" data={trending} loading={trendingLoading} type="movie" />
         <MovieRow title="Now Playing" data={nowPlayingMovies} loading={pmLoading} type="movie" />

@@ -1,21 +1,22 @@
 import { tmdb } from './tmdb';
 import { getGenresFromMood, Mood } from '../utils/moodEngine';
 
-export async function fetchRecommendationsByMood(mood: Mood) {
+export async function fetchRecommendationsByMood(mood: Mood): Promise<any[]> {
   const genreIds = getGenresFromMood(mood);
-  const params = {
-    with_genres: genreIds.join(','),
-    sort_by: 'popularity.desc',
-    'vote_count.gte': '100',
-  };
-  
   try {
-    const response = await tmdb.discoverMovies(params);
-    return response.results;
-  } catch (error) {
-    console.error('Failed to fetch recommendations:', error);
-    // Fallback to trending
-    const trending = await tmdb.getTrending('movie');
-    return trending.results;
+    const res = await tmdb.discoverMovies({
+      with_genres: genreIds.join(','),
+      sort_by: 'popularity.desc',
+      'vote_count.gte': '200',
+    });
+    if (res.results?.length) return res.results;
+    throw new Error('Empty results');
+  } catch {
+    try {
+      const fallback = await tmdb.getTrending('movie');
+      return fallback.results ?? [];
+    } catch {
+      return [];
+    }
   }
 }

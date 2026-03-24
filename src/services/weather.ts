@@ -7,30 +7,23 @@ export interface WeatherData {
 export async function getCoordinates(): Promise<{ latitude: number; longitude: number }> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation is not supported by your browser'));
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          reject(error);
-        }
-      );
+      reject(new Error('Geolocation not supported'));
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      (err) => reject(err),
+      { timeout: 8000 }
+    );
   });
 }
 
 export async function fetchWeather(lat: number, lon: number): Promise<WeatherData> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('Failed to fetch weather data');
-  }
-  const data = await response.json();
+  const res = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+  );
+  if (!res.ok) throw new Error('Failed to fetch weather');
+  const data = await res.json();
   return {
     temperature: data.current_weather.temperature,
     weatherCode: data.current_weather.weathercode,
