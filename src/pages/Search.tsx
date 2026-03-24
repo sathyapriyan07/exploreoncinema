@@ -5,6 +5,7 @@ import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Search as SearchIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Typewriter } from '@/src/components/ui/typewriter';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,10 +57,29 @@ export default function Search() {
     <div className="container mx-auto px-4 pt-28 pb-8">
       <div className="max-w-2xl mx-auto mb-12">
         <form onSubmit={handleSearch} className="relative">
-          <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+          <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40 z-10" />
+          {/* Animated placeholder — only visible when input is empty */}
+          {!inputValue && (
+            <span className="absolute left-12 top-1/2 -translate-y-1/2 text-lg text-white/30 pointer-events-none select-none z-10">
+              <Typewriter
+                text={[
+                  'Search for Interstellar…',
+                  'Find top rated series…',
+                  'Explore trending movies…',
+                  'Discover hidden gems…',
+                  'Look up your favourite actor…',
+                ]}
+                speed={60}
+                deleteSpeed={35}
+                waitTime={2000}
+                cursorChar="|"
+                cursorClassName="text-yellow-400/70"
+              />
+            </span>
+          )}
           <input
             type="text"
-            placeholder="Search for movies, TV shows, people..."
+            placeholder=""
             className="h-14 w-full rounded-2xl bg-zinc-900 border border-white/10 pl-12 pr-4 text-lg outline-none ring-primary/50 transition-all focus:ring-2"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}

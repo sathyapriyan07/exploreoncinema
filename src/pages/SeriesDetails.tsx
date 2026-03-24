@@ -1,8 +1,13 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tmdb } from '@/src/services/tmdb';
+import { supabase } from '@/src/services/supabase';
+import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { Star, ChevronRight, Sparkles, Tv } from 'lucide-react';
+import { Button } from '@/src/components/ui/button';
+import { Star, Sparkles, Tv, MessageSquare, UserCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useState } from 'react';
 import {
   Tabs,
   TabsContent,
@@ -10,15 +15,59 @@ import {
   TabsTrigger,
 } from "@/src/components/ui/tabs";
 import { ContentCard } from '@/src/components/cards/ContentCard';
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from '@/src/components/ui/table';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
 
 export default function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [reviewText, setReviewText] = useState('');
+  const [rating, setRating] = useState(0);
 
   const { data: series, isLoading } = useQuery({
     queryKey: ['series', id],
     queryFn: () => tmdb.getSeriesDetails(id!),
     enabled: !!id,
+  });
+
+  const { data: reviews } = useQuery({
+    queryKey: ['reviews', 'tv', id],
+    queryFn: async () => {
+      if (!supabase) return [];
+      const { data } = await supabase
+        .from('reviews')
+        .select('*, profiles(name, avatar_url)')
+        .eq('content_id', id)
+        .eq('content_type', 'series')
+        .order('created_at', { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!id && !!supabase,
+  });
+
+  const submitReview = useMutation({
+    mutationFn: async () => {
+      if (!user || !supabase) throw new Error('Please sign in first');
+      if (rating === 0) throw new Error('Please select a rating');
+      await supabase.from('reviews').insert({
+        user_id: user.id,
+        content_id: id,
+        content_type: 'series',
+        rating,
+        review_text: reviewText,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'tv', id] });
+      setReviewText('');
+      setRating(0);
+      toast.success('Review submitted!');
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   if (isLoading) return <div className="container mx-auto p-8"><Skeleton className="h-[60vh] w-full rounded-3xl" /></div>;
@@ -146,6 +195,83 @@ export default function SeriesDetails() {
             </div>
           </section>
         )}
+
+        {/* Reviews */}
+        <section className="mt-16 max-w-4xl">
+          <div className="flex items-center gap-2 mb-8">
+            <MessageSquare className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">User Reviews</h2>
+          </div>
+
+          {user ? (
+            <div className="bg-zinc-900 rounded-2xl p-6 mb-12 border border-white/10">
+              <h3 className="font-bold mb-4">Write a Review</h3>
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setRating(num)}
+                    className={`h-8 w-8 rounded-full text-xs font-bold transition-colors ${
+                      rating >= num ? 'bg-yellow-500 text-black' : 'bg-white/10 text-white'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="What did you think of this series?"
+                className="w-full bg-zinc-800 border border-white/10 rounded-xl p-4 text-sm outline-none focus:ring-2 ring-primary/50 min-h-[100px]"
+              />
+              <Button
+                onClick={() => submitReview.mutate()}
+                className="mt-4 rounded-full"
+                disabled={submitReview.isPending}
+              >
+                {submitReview.isPending ? 'Submitting…' : 'Submit Review'}
+              </Button>
+            </div>
+          ) : (
+            <div className="bg-zinc-900 rounded-2xl p-8 text-center mb-12 border border-white/10">
+              <p className="text-white/60 mb-4">Sign in to share your thoughts</p>
+              <Link to="/auth">
+                <Button variant="outline" className="rounded-full">Sign In</Button>
+              </Link>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            {reviews?.map((review: any) => (
+              <div key={review.id} className="bg-zinc-900/50 rounded-2xl p-6 border border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary overflow-hidden">
+                      {review.profiles?.avatar_url
+                        ? <img src={review.profiles.avatar_url} alt={review.profiles.name} className="h-full w-full object-cover" />
+                        : <UserCircle2 className="h-6 w-6" />}
+                    </div>
+                    <div>
+                      <p className="font-bold">{review.profiles?.name || 'Anonymous'}</p>
+                      <p className="text-[10px] text-white/40">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-sm font-bold">
+                    <Star className="h-3 w-3 fill-yellow-500" />
+                    {review.rating}
+                  </div>
+                </div>
+                <p className="text-white/80 text-sm leading-relaxed">{review.review_text}</p>
+              </div>
+            ))}
+            {reviews?.length === 0 && (
+              <p className="text-center text-white/40 py-8">No reviews yet. Be the first to write one!</p>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -157,40 +283,105 @@ function SeasonEpisodes({ seriesId, seasonNumber }: { seriesId: string; seasonNu
     queryFn: () => tmdb.getSeasonDetails(seriesId, seasonNumber),
   });
 
-  if (isLoading) return <div className="grid gap-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>;
+  if (isLoading) return (
+    <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12">Ep</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead className="hidden sm:table-cell w-28">Air Date</TableHead>
+            <TableHead className="w-20">Rating</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <TableRow key={i}>
+              <TableCell><Skeleton className="h-4 w-6" /></TableCell>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-14 w-24 rounded-lg shrink-0 hidden sm:block" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-10" /></TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
-    <div className="grid gap-4">
-      {season?.episodes?.map((episode: any) => (
-        <Link 
-          key={episode.id} 
-          to={`/tv/${seriesId}/season/${seasonNumber}/episode/${episode.episode_number}`}
-          className="group flex gap-4 bg-zinc-900/50 p-4 rounded-2xl border border-white/5 hover:border-primary/30 transition-all"
-        >
-          <div className="w-40 shrink-0 aspect-video rounded-lg overflow-hidden relative">
-            <img
-              src={tmdb.getImageUrl(episode.still_path)}
-              alt={episode.name}
-              className="h-full w-full object-cover transition-transform group-hover:scale-110"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <ChevronRight className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-white group-hover:text-primary transition-colors">
-                {episode.episode_number}. {episode.name}
-              </h3>
-              <span className="text-[10px] text-white/40">{episode.air_date}</span>
-            </div>
-            <p className="text-xs text-white/60 line-clamp-2 leading-relaxed">
-              {episode.overview || 'No overview available for this episode.'}
-            </p>
-          </div>
-        </Link>
-      ))}
+    <div className="rounded-2xl border border-white/10 overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-12">Ep</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead className="hidden sm:table-cell w-28">Air Date</TableHead>
+            <TableHead className="w-20">Rating</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {season?.episodes?.map((episode: any) => (
+            <TableRow key={episode.id} className="cursor-pointer">
+              {/* Episode number */}
+              <TableCell>
+                <span className="text-white/30 text-xs font-mono font-bold">
+                  {String(episode.episode_number).padStart(2, '0')}
+                </span>
+              </TableCell>
+
+              {/* Still + title + overview */}
+              <TableCell>
+                <Link
+                  to={`/tv/${seriesId}/season/${seasonNumber}/episode/${episode.episode_number}`}
+                  className="flex items-center gap-3 group"
+                >
+                  <div className="w-24 shrink-0 aspect-video rounded-lg overflow-hidden hidden sm:block border border-white/10">
+                    <img
+                      src={tmdb.getImageUrl(episode.still_path)}
+                      alt={episode.name}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-white group-hover:text-yellow-400 transition-colors line-clamp-1">
+                      {episode.name}
+                    </p>
+                    <p className="text-[11px] text-white/40 line-clamp-2 mt-0.5 leading-relaxed">
+                      {episode.overview || 'No overview available.'}
+                    </p>
+                  </div>
+                </Link>
+              </TableCell>
+
+              {/* Air date */}
+              <TableCell className="hidden sm:table-cell">
+                <span className="text-[11px] text-white/40">{episode.air_date}</span>
+              </TableCell>
+
+              {/* Rating */}
+              <TableCell>
+                {episode.vote_average > 0 ? (
+                  <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm">
+                    <Star className="h-3.5 w-3.5 fill-yellow-400" />
+                    {episode.vote_average.toFixed(1)}
+                  </div>
+                ) : (
+                  <span className="text-white/20 text-xs">—</span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

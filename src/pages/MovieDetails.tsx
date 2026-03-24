@@ -5,7 +5,7 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Button } from '@/src/components/ui/button';
-import { Star, Plus, Check, MessageSquare, Sparkles, Film } from 'lucide-react';
+import { Star, Plus, Check, MessageSquare, Sparkles, Film, UserCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
@@ -40,15 +40,16 @@ export default function MovieDetails() {
   });
 
   const { data: reviews } = useQuery({
-    queryKey: ['reviews', id],
+    queryKey: ['reviews', 'movie', id],
     queryFn: async () => {
       if (!supabase) return [];
       const { data } = await supabase
         .from('reviews')
         .select('*, profiles(name, avatar_url)')
         .eq('content_id', id)
+        .eq('content_type', 'movie')
         .order('created_at', { ascending: false });
-      return data;
+      return data ?? [];
     },
     enabled: !!id && !!supabase,
   });
@@ -87,7 +88,7 @@ export default function MovieDetails() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reviews', id] });
+      queryClient.invalidateQueries({ queryKey: ['reviews', 'movie', id] });
       setReviewText('');
       setRating(0);
       toast.success('Review submitted!');
@@ -269,8 +270,10 @@ export default function MovieDetails() {
               <div key={review.id} className="bg-zinc-900/50 rounded-2xl p-6 border border-white/5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
-                      {review.profiles?.name?.[0] || 'U'}
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary overflow-hidden">
+                      {review.profiles?.avatar_url
+                        ? <img src={review.profiles.avatar_url} alt={review.profiles.name} className="h-full w-full object-cover" />
+                        : <UserCircle2 className="h-6 w-6" />}
                     </div>
                     <div>
                       <p className="font-bold">{review.profiles?.name || 'Anonymous'}</p>

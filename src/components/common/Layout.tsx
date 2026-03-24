@@ -79,6 +79,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link
             to="/search"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Search"
           >
             <Search className="h-4 w-4 text-white" />
           </Link>

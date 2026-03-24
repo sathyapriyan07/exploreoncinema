@@ -34,8 +34,11 @@ export const tmdb = {
   getTopRatedSeries: () =>
     fetchTMDB('/tv/top_rated'),
 
-  getNowPlayingMovies: () =>
-    fetchTMDB('/movie/now_playing'),
+  getNowPlayingMovies: (page = 1, region = '') =>
+    fetchTMDB('/movie/now_playing', {
+      page: String(page),
+      ...(region ? { region } : {}),
+    }),
 
   getOnTheAirSeries: () =>
     fetchTMDB('/tv/on_the_air'),
@@ -72,6 +75,15 @@ export const tmdb = {
 
   discoverMovies: (params: Record<string, string> = {}) =>
     fetchTMDB('/discover/movie', params),
+
+  discoverStreaming: (watchRegion: string, providerId: string, page = 1) =>
+    fetchTMDB('/discover/movie', {
+      watch_region: watchRegion,
+      with_watch_providers: providerId,
+      with_watch_monetization_types: 'flatrate|free|ads',
+      sort_by: 'popularity.desc',
+      page: String(page),
+    }),
 
   getMoviesByLanguage: (language: string, page = 1) =>
     fetchTMDB('/discover/movie', { 

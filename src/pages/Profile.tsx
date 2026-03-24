@@ -4,11 +4,15 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Button } from '@/src/components/ui/button';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { Star, MessageSquare, Bookmark, Play, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, MessageSquare, Bookmark, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserAvatar } from '@/src/components/UserAvatar';
 import { AvatarStyleSelector } from '@/src/components/AvatarStyleSelector';
 import { AvatarStyle, getSeedFromUser, generateAvatar } from '@/src/utils/avatar';
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
+} from '@/src/components/ui/table';
 
 export default function Profile() {
   const { user, signOut } = useAuth();
@@ -137,7 +141,7 @@ export default function Profile() {
           to="/watchlist"
           className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-zinc-900 border border-white/10 hover:border-white/30 hover:bg-zinc-800 transition-all"
         >
-          <Play className="h-7 w-7 text-yellow-500" />
+          <MessageSquare className="h-7 w-7 text-yellow-500" />
           <div className="text-center">
             <p className="font-bold text-lg">{reviews?.length ?? 0}</p>
             <p className="text-white/40 text-xs">Reviews</p>
@@ -145,37 +149,89 @@ export default function Profile() {
         </Link>
       </div>
 
-      {/* Reviews */}
+      {/* Reviews table */}
       <div className="max-w-3xl mx-auto">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-yellow-500" />
           My Reviews
         </h2>
 
-        <div className="space-y-4">
-          {reviewsLoading
-            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)
-            : reviews?.map((review: any) => (
-                <div key={review.id} className="bg-zinc-900/60 rounded-2xl p-5 border border-white/5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-bold">
-                        <Star className="h-3 w-3 fill-yellow-500" />
-                        {review.rating}
+        {reviewsLoading ? (
+          <div className="rounded-2xl border border-white/10 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Content</TableHead>
+                  <TableHead className="w-24">Rating</TableHead>
+                  <TableHead className="hidden md:table-cell">Review</TableHead>
+                  <TableHead className="w-28">Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                    <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : reviews?.length === 0 ? (
+          <div className="text-center py-16 rounded-2xl border border-dashed border-white/10">
+            <p className="text-white/30">No reviews yet.</p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-white/10 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Content</TableHead>
+                  <TableHead className="w-24">Rating</TableHead>
+                  <TableHead className="hidden md:table-cell">Review</TableHead>
+                  <TableHead className="w-28">Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reviews?.map((review: any) => (
+                  <TableRow key={review.id}>
+                    {/* Content type */}
+                    <TableCell>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/60 capitalize">
+                        {review.content_type}
                       </span>
-                      <span className="text-[10px] text-white/30 uppercase tracking-widest">{review.content_type}</span>
-                    </div>
-                    <span className="text-[10px] text-white/30">{new Date(review.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-white/70 text-sm leading-relaxed italic">"{review.review_text}"</p>
-                </div>
-              ))}
-          {!reviewsLoading && reviews?.length === 0 && (
-            <div className="text-center py-16 rounded-2xl border border-dashed border-white/10">
-              <p className="text-white/30">No reviews yet.</p>
-            </div>
-          )}
-        </div>
+                    </TableCell>
+
+                    {/* Rating */}
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm">
+                        <Star className="h-3.5 w-3.5 fill-yellow-400" />
+                        {review.rating}
+                        <span className="text-white/30 font-normal">/10</span>
+                      </div>
+                    </TableCell>
+
+                    {/* Review text */}
+                    <TableCell className="hidden md:table-cell">
+                      <p className="text-white/60 text-sm italic line-clamp-1 max-w-xs">
+                        {review.review_text ? `"${review.review_text}"` : <span className="text-white/20 not-italic">No text</span>}
+                      </p>
+                    </TableCell>
+
+                    {/* Date */}
+                    <TableCell>
+                      <span className="text-[11px] text-white/30">
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         <Button
           variant="destructive"

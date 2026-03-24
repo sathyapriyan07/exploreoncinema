@@ -12,7 +12,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
-import { NowPlayingNearYou } from '@/src/components/NowPlayingNearYou';
+import { Typewriter } from '@/src/components/ui/typewriter';
 
 // ─── MovieRow ─────────────────────────────────────────────────────────────────
 function MovieRow({ title, data, loading, type }: { title: string; data: any; loading: boolean; type: 'movie' | 'tv' }) {
@@ -26,10 +26,10 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
       <div className="flex items-center justify-between mb-4 px-6 md:px-12">
         <h2 className="text-xl font-bold tracking-tight">{title}</h2>
         <div className="hidden md:flex gap-1">
-          <button onClick={() => scroll('left')} className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+          <button onClick={() => scroll('left')} aria-label="Scroll left" className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button onClick={() => scroll('right')} className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+          <button onClick={() => scroll('right')} aria-label="Scroll right" className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
             <ChevronRight className="h-4 w-4" />
           </button>
         </div>
@@ -131,6 +131,23 @@ function CinematicHero({ items }: { items: any[] }) {
 
       {/* Content */}
       <div className="absolute bottom-0 left-0 px-6 md:px-12 pb-24 md:pb-20 max-w-2xl">
+        {/* Typewriter tagline */}
+        <p className="text-xs md:text-sm font-medium text-white/50 mb-3 tracking-widest uppercase">
+          <Typewriter
+            text={[
+              'discover movies',
+              'track your watchlist',
+              'rate your favorites',
+              'explore cinematic worlds',
+              'find your next obsession',
+            ]}
+            speed={55}
+            deleteSpeed={30}
+            waitTime={1800}
+            cursorChar="_"
+            cursorClassName="text-yellow-400"
+          />
+        </p>
         {logo ? (
           <Link to={`/${type}/${current.id}`}>
             <img
@@ -229,8 +246,6 @@ export default function Home() {
         )}
 
         <WeatherRecommendations />
-
-        <NowPlayingNearYou />
 
         <MovieRow title="Trending Now" data={trending} loading={trendingLoading} type="movie" />
         <MovieRow title="Now Playing" data={nowPlayingMovies} loading={pmLoading} type="movie" />
