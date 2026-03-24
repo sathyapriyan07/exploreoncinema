@@ -1,43 +1,54 @@
 export type MediaType = 'movie' | 'tv';
 
-export interface PlayerSource {
-  label: string;
-  getUrl: (id: number, season?: number, episode?: number) => string;
-}
+const BASE = 'https://www.vidking.net/embed';
+const COLOR = 'e50914'; // brand accent — change once to update everywhere
 
-export const PLAYER_SOURCES: PlayerSource[] = [
-  {
-    label: 'Server 1',
-    getUrl: (id, season, episode) =>
-      season != null && episode != null
-        ? `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`
-        : `https://vidsrc.xyz/embed/movie?tmdb=${id}`,
-  },
-  {
-    label: 'Server 2',
-    getUrl: (id, season, episode) =>
-      season != null && episode != null
-        ? `https://embed.su/embed/tv/${id}/${season}/${episode}`
-        : `https://embed.su/embed/movie/${id}`,
-  },
-  {
-    label: 'Server 3',
-    getUrl: (id, season, episode) =>
-      season != null && episode != null
-        ? `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`
-        : `https://multiembed.mov/?video_id=${id}&tmdb=1`,
-  },
-];
+export interface VidkingOptions {
+  autoPlay?: boolean;
+  nextEpisode?: boolean;
+  episodeSelector?: boolean;
+  progress?: number; // resume from seconds
+}
 
 export const getEmbedUrl = (
   id: number,
   type: MediaType,
-  sourceIndex = 0,
+  options: VidkingOptions = {},
   season?: number,
   episode?: number
 ): string => {
-  const source = PLAYER_SOURCES[sourceIndex] ?? PLAYER_SOURCES[0];
-  return type === 'tv'
-    ? source.getUrl(id, season, episode)
-    : source.getUrl(id);
+  const path =
+    type === 'tv' && season != null && episode != null
+      ? `${BASE}/tv/${id}/${season}/${episode}`
+      : `${BASE}/movie/${id}`;
+
+  const params = new URLSearchParams({ color: COLOR });
+  if (options.autoPlay)        params.set('autoPlay', 'true');
+  if (options.nextEpisode)     params.set('nextEpisode', 'true');
+  if (options.episodeSelector) params.set('episodeSelector', 'true');
+  if (options.progress != null && options.progress > 0)
+    params.set('progress', String(Math.floor(options.progress)));
+
+  return `${path}?${params.toString()}`;
+};
+
+// Shape of progress events sent by Vidking player
+export interface VidkingEvent {
+  event: 'timeupdate' | 'play' | 'pause' | 'ended' | 'seeked';
+  currentTime: number;
+  duration: number;
+  progress: number;
+  id: string;
+  mediaType: MediaType;
+  season?: number;
+  episode?: number;
+  timestamp: number;
+}
+
+export const parsePlayerEvent = (raw: MessageEvent): VidkingEvent | null => {
+  try {
+    const msg = typeof raw.data === 'string' ? JSON.parse(raw.data) : raw.data;
+    if (msg?.type === 'PLAYER_EVENT' && msg?.data?.event) return msg.data as VidkingEvent;
+  } catch {}
+  return null;
 };
