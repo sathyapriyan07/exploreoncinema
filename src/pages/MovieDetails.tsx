@@ -8,6 +8,7 @@ import { Button } from '@/src/components/ui/button';
 import { Star, Plus, Check, MessageSquare, Sparkles, Film } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { StreamingProviders } from '@/src/components/StreamingProviders';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 
 export default function MovieDetails() {
@@ -157,6 +158,8 @@ export default function MovieDetails() {
                 {watchlistStatus ? "In Watchlist" : "Add to Watchlist"}
               </Button>
             </div>
+
+            <StreamingProviders tmdbId={id!} type="movie" />
           </div>
         </div>
 

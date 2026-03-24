@@ -43,6 +43,9 @@ export const tmdb = {
   getUpcomingMovies: () =>
     fetchTMDB('/movie/upcoming'),
 
+  getWatchProviders: (id: string, type: 'movie' | 'tv') =>
+    fetchTMDB(`/${type}/${id}/watch/providers`),
+
   getMoviesByGenre: (genreId: string) =>
     fetchTMDB('/discover/movie', { with_genres: genreId, sort_by: 'popularity.desc' }),
 

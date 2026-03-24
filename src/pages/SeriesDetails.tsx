@@ -10,6 +10,7 @@ import {
   TabsTrigger,
 } from "@/src/components/ui/tabs";
 import { ContentCard } from '@/src/components/cards/ContentCard';
+import { StreamingProviders } from '@/src/components/StreamingProviders';
 
 export default function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -63,6 +64,8 @@ export default function SeriesDetails() {
             <p className="text-lg text-white/80 leading-relaxed mb-8 max-w-3xl">
               {series.overview}
             </p>
+
+            <StreamingProviders tmdbId={id!} type="tv" />
           </div>
         </div>
 
