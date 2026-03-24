@@ -1,14 +1,17 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Button } from '@/src/components/ui/button';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { Star, MessageSquare, Bookmark, Play } from 'lucide-react';
+import { Star, MessageSquare, Bookmark, Play, RefreshCw } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { UserAvatar } from '@/src/components/UserAvatar';
+import { generateRandomAvatar, getSeedFromUser } from '@/src/utils/avatar';
 
 export default function Profile() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -40,6 +43,23 @@ export default function Profile() {
     enabled: !!user && !!supabase,
   });
 
+  const regenerateAvatar = useMutation({
+    mutationFn: async () => {
+      if (!user || !supabase) throw new Error('Not signed in');
+      const seed = getSeedFromUser(profile?.name, user.email);
+      const avatar_url = generateRandomAvatar(seed);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url })
+        .eq('id', user.id);
+      if (error) throw error;
+      return avatar_url;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
+  });
+
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 text-center px-4">
@@ -50,14 +70,27 @@ export default function Profile() {
   }
 
   const displayName = profile?.name || user.email?.split('@')[0] || 'User';
-  const initial = displayName[0].toUpperCase();
 
   return (
     <div className="container mx-auto px-4 pt-28 pb-12">
       {/* Avatar + Info */}
       <div className="flex flex-col items-center text-center mb-12">
-        <div className="h-28 w-28 rounded-full bg-yellow-500 flex items-center justify-center text-4xl font-black text-black mb-5 shadow-2xl">
-          {initial}
+        <div className="relative mb-5">
+          <UserAvatar
+            name={profile?.name}
+            email={user.email}
+            avatarUrl={profile?.avatar_url}
+            size="xl"
+            className="shadow-2xl"
+          />
+          <button
+            onClick={() => regenerateAvatar.mutate()}
+            disabled={regenerateAvatar.isPending}
+            className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-zinc-800 border border-white/20 flex items-center justify-center hover:bg-zinc-700 transition-colors"
+            title="Generate new avatar"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 text-white/70 ${regenerateAvatar.isPending ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <h1 className="text-3xl font-black mb-1">{displayName}</h1>
         <p className="text-white/40 text-sm">{user.email}</p>

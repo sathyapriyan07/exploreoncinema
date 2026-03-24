@@ -5,6 +5,7 @@ import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { toast } from 'sonner';
+import { generateAvatar, getSeedFromUser } from '@/src/utils/avatar';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -36,10 +37,12 @@ export default function Auth() {
         if (error) throw error;
         
         if (data.user) {
-          // Create profile record
+          const seed = getSeedFromUser(name, email);
+          const avatar_url = generateAvatar(seed);
           await supabase.from('profiles').insert({
             id: data.user.id,
-            name: name,
+            name,
+            avatar_url,
           });
         }
 

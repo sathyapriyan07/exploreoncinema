@@ -8,6 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/src/components/ui/dropdown-menu';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/src/services/supabase';
+import { UserAvatar } from '@/src/components/UserAvatar';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -28,6 +31,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user || !supabase) return null;
+      const { data } = await supabase.from('profiles').select('name, avatar_url').eq('id', user.id).single();
+      return data;
+    },
+    enabled: !!user && !!supabase,
+    staleTime: 1000 * 60 * 5,
+  });
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-yellow-500 selection:text-black">
@@ -72,9 +86,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none">
-                <div className="h-9 w-9 rounded-full bg-yellow-500 flex items-center justify-center font-black text-black text-sm">
-                  {user.email?.[0].toUpperCase()}
-                </div>
+                <UserAvatar
+                  name={profile?.name}
+                  email={user.email}
+                  avatarUrl={profile?.avatar_url}
+                  size="sm"
+                  className="hover:ring-2 hover:ring-white/30 transition-all"
+                />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-zinc-900 text-white border-white/10">
                 <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
