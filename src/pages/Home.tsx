@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { tmdb } from '@/src/services/tmdb';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { useState, useEffect, useRef, useMemo } from 'react'; // useMemo used in Home for heroKey
-import { Plus, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRef } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Info, Star } from 'lucide-react';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
 import { toast } from 'sonner';
@@ -46,14 +46,16 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
   );
 }
 
-// ─── HeroSlide ────────────────────────────────────────────────────────────────
-function HeroSlide({ item, onPrev, onNext }: { item: any; onPrev: () => void; onNext: () => void }) {
+// ─── HomeHero ─────────────────────────────────────────────────────────────────
+function HomeHero({ item }: { item: any }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const type = item?.title ? 'movie' : 'tv';
+  const title = item.title || item.name;
+  const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? item.images?.logos?.[0];
 
   const { data: watchlistStatus } = useQuery({
-    queryKey: ['watchlist-hero-item', item?.id, user?.id],
+    queryKey: ['watchlist', item.id, user?.id],
     queryFn: async () => {
       if (!user || !supabase) return null;
       const { data } = await supabase.from('watchlist').select('id').eq('user_id', user.id).eq('content_id', String(item.id)).single();
@@ -73,27 +75,17 @@ function HeroSlide({ item, onPrev, onNext }: { item: any; onPrev: () => void; on
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist-hero-item', item?.id, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['watchlist', item.id, user?.id] });
       toast.success(watchlistStatus ? 'Removed from watchlist' : 'Added to watchlist');
     },
     onError: (err: any) => toast.error(err.message),
   });
 
-  const title = item.title || item.name;
-  const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? item.images?.logos?.[0];
-
   return (
-    <div
-      className="relative"
-      onTouchStart={(e) => { (e.currentTarget as any)._touchX = e.touches[0].clientX; }}
-      onTouchEnd={(e) => {
-        const diff = (e.currentTarget as any)._touchX - e.changedTouches[0].clientX;
-        if (Math.abs(diff) > 50) diff > 0 ? onNext() : onPrev();
-      }}
-    >
+    <div className="relative">
       <TrailerHero videos={item.videos} backdrop_path={item.backdrop_path} title={title} />
 
-      {/* Overlay content */}
+      {/* Overlay */}
       <div className="absolute bottom-6 left-0 px-8 md:px-16 max-w-2xl z-20 pointer-events-none">
         {logo ? (
           <img
@@ -103,8 +95,20 @@ function HeroSlide({ item, onPrev, onNext }: { item: any; onPrev: () => void; on
             referrerPolicy="no-referrer"
           />
         ) : (
-          <h1 className="font-display text-4xl md:text-6xl font-black text-white mb-4 leading-none drop-shadow-2xl">{title}</h1>
+          <h1 className="text-4xl md:text-6xl font-black text-white mb-4 leading-none drop-shadow-2xl">{title}</h1>
         )}
+        <div className="flex items-center gap-3 text-sm text-white/60 mb-4">
+          {item.vote_average > 0 && (
+            <span className="flex items-center gap-1 text-yellow-500 font-bold">
+              <Star className="h-3.5 w-3.5 fill-yellow-500" />
+              {item.vote_average.toFixed(1)}
+            </span>
+          )}
+          <span>{(item.release_date || item.first_air_date)?.split('-')[0]}</span>
+          {item.genres?.slice(0, 2).map((g: any) => (
+            <span key={g.id} className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">{g.name}</span>
+          ))}
+        </div>
         <p className="text-sm md:text-base text-white/70 line-clamp-2 mb-5 leading-relaxed drop-shadow">{item.overview}</p>
         <div className="flex items-center gap-3 pointer-events-auto">
           <button
@@ -122,35 +126,7 @@ function HeroSlide({ item, onPrev, onNext }: { item: any; onPrev: () => void; on
           </Link>
         </div>
       </div>
-
-      {/* Prev / Next arrows */}
-      <button onClick={onPrev} className="absolute left-10 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors" aria-label="Previous">
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button onClick={onNext} className="absolute right-10 top-1/2 -translate-y-1/2 z-20 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors" aria-label="Next">
-        <ChevronRight className="h-5 w-5" />
-      </button>
     </div>
-  );
-}
-
-// ─── CinematicHero ────────────────────────────────────────────────────────────
-function CinematicHero({ items }: { items: any[] }) {
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setIdx(p => (p + 1) % items.length), 12000);
-    return () => clearInterval(t);
-  }, [items.length]);
-
-  if (!items[idx]) return <Skeleton className="h-[220px] md:h-[420px] w-full rounded-3xl mx-4" />;
-
-  return (
-    <HeroSlide
-      item={items[idx]}
-      onPrev={() => setIdx(p => (p - 1 + items.length) % items.length)}
-      onNext={() => setIdx(p => (p + 1) % items.length)}
-    />
   );
 }
 
@@ -164,21 +140,15 @@ export default function Home() {
     staleTime: 1000 * 60 * 15,
   });
 
-  // Stable key: sort ids so order changes don't bust cache
-  const top5 = trending?.results?.slice(0, 5) ?? [];
-  const heroKey = useMemo(() => top5.map((i: any) => i.id).sort().join(','), [top5]);
+  const heroItem = trending?.results?.[0];
 
-  const { data: heroItems } = useQuery({
-    queryKey: ['heroDetails', heroKey],
+  const { data: heroDetails } = useQuery({
+    queryKey: ['heroDetails', heroItem?.id],
     queryFn: () =>
-      Promise.all(
-        top5.map((item: any) =>
-          item.media_type === 'tv'
-            ? tmdb.getSeriesDetails(String(item.id))
-            : tmdb.getMovieDetails(String(item.id))
-        )
-      ),
-    enabled: top5.length > 0,
+      heroItem.media_type === 'tv'
+        ? tmdb.getSeriesDetails(String(heroItem.id))
+        : tmdb.getMovieDetails(String(heroItem.id)),
+    enabled: !!heroItem,
     staleTime: 1000 * 60 * 15,
   });
 
@@ -201,14 +171,14 @@ export default function Home() {
   const { data: animeSeries, isLoading: animeSLoading } = useQuery({ queryKey: ['animeSeries'], queryFn: () => tmdb.discoverMovies({ with_genres: '16', sort_by: 'popularity.desc' }), staleTime: 1000 * 60 * 60 });
 
   return (
-    <div className="bg-black">
-      {heroItems && heroItems.length > 0 ? (
-        <CinematicHero items={heroItems} />
+    <div className="bg-black pt-20">
+      {heroDetails ? (
+        <HomeHero item={heroDetails} />
       ) : (
-        <Skeleton className="h-screen w-full" />
+        <Skeleton className="h-[220px] md:h-[420px] mx-4 md:mx-8 rounded-3xl" />
       )}
 
-      <div className="relative z-10 mt-6">
+      <div className="mt-6">
         {user && continueWatching && continueWatching.length > 0 && (
           <MovieRow title="Continue Watching" data={{ results: continueWatching }} loading={false} type="movie" />
         )}
