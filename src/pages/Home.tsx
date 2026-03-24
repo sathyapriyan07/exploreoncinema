@@ -93,7 +93,14 @@ function CinematicHero({ items }: { items: any[] }) {
   const logo = current.images?.logos?.find((l: any) => l.iso_639_1 === 'en') || current.images?.logos?.[0];
 
   return (
-    <div className="relative h-screen w-full overflow-hidden">
+    <div
+      className="relative h-screen w-full overflow-hidden cursor-pointer"
+      onTouchStart={(e) => { const x = e.touches[0].clientX; (e.currentTarget as any)._touchX = x; }}
+      onTouchEnd={(e) => {
+        const diff = (e.currentTarget as any)._touchX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) setIdx(p => diff > 0 ? (p + 1) % items.length : (p - 1 + items.length) % items.length);
+      }}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id}
@@ -156,16 +163,7 @@ function CinematicHero({ items }: { items: any[] }) {
         </div>
       </div>
 
-      {/* Indicators */}
-      <div className="absolute bottom-24 md:bottom-20 right-6 md:right-12 flex gap-1.5">
-        {items.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setIdx(i)}
-            className={`h-1 rounded-full transition-all ${i === idx ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'}`}
-          />
-        ))}
-      </div>
+      {/* Indicators - hidden, touch/auto only */}
     </div>
   );
 }
@@ -221,7 +219,7 @@ export default function Home() {
         <Skeleton className="h-screen w-full" />
       )}
 
-      <div className="pt-8">
+      <div className="pt-0">
         {/* Continue Watching */}
         {user && continueWatching && continueWatching.length > 0 && (
           <MovieRow title="Continue Watching" data={{ results: continueWatching }} loading={false} type="movie" />
