@@ -222,7 +222,7 @@ export default function Home() {
         <Skeleton className="h-screen w-full" />
       )}
 
-      <div className="pt-0">
+      <div className="-mt-16 md:-mt-24 relative z-10">
         {/* Continue Watching */}
         {user && continueWatching && continueWatching.length > 0 && (
           <MovieRow title="Continue Watching" data={{ results: continueWatching }} loading={false} type="movie" />

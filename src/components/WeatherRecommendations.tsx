@@ -37,7 +37,7 @@ export function WeatherRecommendations() {
   const condition = weather ? (WEATHER_CONDITION[weather.weatherCode] ?? 'Unknown') : null;
 
   return (
-    <section className="py-6">
+    <section className="pt-2 pb-6">
       {/* Header */}
       <div className="px-6 md:px-12 mb-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
