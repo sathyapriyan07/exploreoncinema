@@ -6,6 +6,8 @@ interface TrailerHeroProps {
   videos?: { results: any[] };
   backdrop_path: string;
   title: string;
+  zoom?: number;
+  logo?: string | null;
 }
 
 const QUALITIES = [
@@ -16,7 +18,7 @@ const QUALITIES = [
   { label: '360p', vq: 'medium' },
 ];
 
-export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) {
+export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo }: TrailerHeroProps) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
@@ -86,7 +88,7 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
     <div className="px-4 md:px-8">
       <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
         {!ready && <div className="absolute inset-0 z-10 bg-black" />}
-        <div className="absolute inset-0 scale-[1.15] overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden" style={{ scale: String(zoom) }}>
           <iframe
             ref={iframeRef}
             src={buildSrc(quality.vq)}
@@ -103,6 +105,13 @@ export function TrailerHero({ videos, backdrop_path, title }: TrailerHeroProps) 
         <div className="absolute inset-0" />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+        {/* Logo overlay */}
+        {logo && (
+          <div className="absolute bottom-6 left-6 md:left-10 z-20 pointer-events-none">
+            <img src={logo} alt={title} className="h-14 md:h-20 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+          </div>
+        )}
 
         {/* Controls */}
         <div className="absolute bottom-4 right-4 z-10 flex items-end gap-2">

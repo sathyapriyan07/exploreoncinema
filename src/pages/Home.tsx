@@ -1,13 +1,11 @@
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { tmdb } from '@/src/services/tmdb';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Info, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
-import { toast } from 'sonner';
 import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
 import { TrailerHero } from '@/src/components/TrailerHero';
 
@@ -48,85 +46,19 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
 
 // ─── HomeHero ─────────────────────────────────────────────────────────────────
 function HomeHero({ item }: { item: any }) {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const type = item?.title ? 'movie' : 'tv';
   const title = item.title || item.name;
   const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? item.images?.logos?.[0];
-
-  const { data: watchlistStatus } = useQuery({
-    queryKey: ['watchlist', item.id, user?.id],
-    queryFn: async () => {
-      if (!user || !supabase) return null;
-      const { data } = await supabase.from('watchlist').select('id').eq('user_id', user.id).eq('content_id', String(item.id)).single();
-      return data;
-    },
-    enabled: !!user && !!item,
-    staleTime: 1000 * 60 * 2,
-  });
-
-  const toggleWatchlist = useMutation({
-    mutationFn: async () => {
-      if (!user || !supabase) throw new Error('Please sign in first');
-      if (watchlistStatus) {
-        await supabase.from('watchlist').delete().eq('id', watchlistStatus.id);
-      } else {
-        await supabase.from('watchlist').insert({ user_id: user.id, content_id: String(item.id), content_type: type, status: 'plan_to_watch' });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['watchlist', item.id, user?.id] });
-      toast.success(watchlistStatus ? 'Removed from watchlist' : 'Added to watchlist');
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
+  const logoUrl = logo ? tmdb.getImageUrl(logo.file_path, 'original') : null;
 
   return (
-    <div className="relative">
-      <TrailerHero videos={item.videos} backdrop_path={item.backdrop_path} title={title} />
-
-      {/* Overlay */}
-      <div className="absolute bottom-6 left-0 px-8 md:px-16 max-w-2xl z-20 pointer-events-none">
-        {logo ? (
-          <img
-            src={tmdb.getImageUrl(logo.file_path, 'original')}
-            alt={title}
-            className="h-16 md:h-24 w-auto object-contain mb-4 drop-shadow-2xl"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-4 leading-none drop-shadow-2xl">{title}</h1>
-        )}
-        <div className="flex items-center gap-3 text-sm text-white/60 mb-4">
-          {item.vote_average > 0 && (
-            <span className="flex items-center gap-1 text-yellow-500 font-bold">
-              <Star className="h-3.5 w-3.5 fill-yellow-500" />
-              {item.vote_average.toFixed(1)}
-            </span>
-          )}
-          <span>{(item.release_date || item.first_air_date)?.split('-')[0]}</span>
-          {item.genres?.slice(0, 2).map((g: any) => (
-            <span key={g.id} className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">{g.name}</span>
-          ))}
-        </div>
-        <p className="text-sm md:text-base text-white/70 line-clamp-2 mb-5 leading-relaxed drop-shadow">{item.overview}</p>
-        <div className="flex items-center gap-3 pointer-events-auto">
-          <button
-            onClick={() => toggleWatchlist.mutate()}
-            className="flex items-center gap-2 px-6 py-2.5 bg-white/15 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/25 transition-colors border border-white/20"
-          >
-            <Plus className="h-4 w-4" />
-            {watchlistStatus ? 'In Watchlist' : 'Watchlist'}
-          </button>
-          <Link
-            to={`/${type}/${item.id}`}
-            className="flex items-center gap-2 px-6 py-2.5 bg-white/10 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/20 transition-colors"
-          >
-            <Info className="h-4 w-4" /> More Info
-          </Link>
-        </div>
-      </div>
-    </div>
+    <TrailerHero
+      videos={item.videos}
+      backdrop_path={item.backdrop_path}
+      title={title}
+      zoom={1.4}
+      logo={logoUrl}
+    />
   );
 }
 
