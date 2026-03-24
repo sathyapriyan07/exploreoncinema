@@ -107,7 +107,12 @@ export default function MovieDetails() {
       <div className="container mx-auto px-4 mt-8 relative z-10">
         {/* Title + meta — no poster overlay */}
         <div className="max-w-3xl mb-8">
-          <h1 className="text-4xl md:text-5xl font-black mb-3">{movie.title}</h1>
+          {(() => {
+            const logo = movie.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? movie.images?.logos?.[0];
+            return logo
+              ? <img src={tmdb.getImageUrl(logo.file_path, 'w500')} alt={movie.title} className="h-16 md:h-24 w-auto object-contain mb-3 drop-shadow-2xl" referrerPolicy="no-referrer" />
+              : <h1 className="text-4xl md:text-5xl font-black mb-3">{movie.title}</h1>;
+          })()}
           <div className="flex flex-wrap items-center gap-4 text-sm text-white/60 mb-5">
             <span className="flex items-center gap-1 text-yellow-500 font-bold">
               <Star className="h-4 w-4 fill-yellow-500" />
