@@ -5,9 +5,10 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Button } from '@/src/components/ui/button';
-import { Star, ChevronLeft, MessageSquare } from 'lucide-react';
+import { Star, ChevronLeft, MessageSquare, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { PlayerModal } from '@/src/components/player/PlayerModal';
 
 export default function EpisodeDetails() {
   const { id, seasonNumber, episodeNumber } = useParams<{ id: string; seasonNumber: string; episodeNumber: string }>();
@@ -15,6 +16,7 @@ export default function EpisodeDetails() {
   const queryClient = useQueryClient();
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
+  const [playerOpen, setPlayerOpen] = useState(false);
 
   const contentId = `tv-${id}-s${seasonNumber}-e${episodeNumber}`;
 
@@ -94,11 +96,29 @@ export default function EpisodeDetails() {
           </div>
           <h1 className="text-4xl font-black mb-4">{episode.name}</h1>
           <p className="text-white/40 text-sm mb-6">Aired on {episode.air_date}</p>
-          <p className="text-lg text-white/80 leading-relaxed">
+          <p className="text-lg text-white/80 leading-relaxed mb-8">
             {episode.overview || 'No overview available for this episode.'}
           </p>
+          <Button
+            onClick={() => setPlayerOpen(true)}
+            className="rounded-full px-8 bg-yellow-500 hover:bg-yellow-400 text-black font-bold"
+          >
+            <PlayCircle className="mr-2 h-4 w-4" />
+            Watch Episode
+          </Button>
         </div>
       </div>
+
+      {playerOpen && (
+        <PlayerModal
+          id={Number(id)}
+          type="tv"
+          title={episode.name}
+          season={Number(seasonNumber)}
+          episode={Number(episodeNumber)}
+          onClose={() => setPlayerOpen(false)}
+        />
+      )}
 
       {/* Reviews Section */}
       <section className="mt-20 max-w-4xl">

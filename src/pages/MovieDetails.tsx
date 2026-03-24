@@ -5,13 +5,14 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Button } from '@/src/components/ui/button';
-import { Star, Plus, Check, MessageSquare, Sparkles, Film, UserCircle2 } from 'lucide-react';
+import { Star, Plus, Check, MessageSquare, Sparkles, Film, UserCircle2, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import { TrailerHero } from '@/src/components/TrailerHero';
 import { ExpandedCard } from '@/src/components/ExpandedCard';
+import { PlayerModal } from '@/src/components/player/PlayerModal';
 
 export default function MovieDetails() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ export default function MovieDetails() {
   const queryClient = useQueryClient();
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
+  const [playerOpen, setPlayerOpen] = useState(false);
   const [expanded, setExpanded] = useState<{ id: number; type: 'movie' | 'tv' } | null>(null);
   const expand = (eid: number, type: 'movie' | 'tv') => setExpanded(e => e?.id === eid ? null : { id: eid, type });
 
@@ -134,6 +136,13 @@ export default function MovieDetails() {
           <p className="text-base text-white/80 leading-relaxed mb-6">{movie.overview}</p>
           <div className="flex flex-wrap gap-4">
             <Button
+              onClick={() => setPlayerOpen(true)}
+              className="rounded-full px-8 bg-yellow-500 hover:bg-yellow-400 text-black font-bold"
+            >
+              <PlayCircle className="mr-2 h-4 w-4" />
+              Watch Now
+            </Button>
+            <Button
               onClick={() => toggleWatchlist.mutate()}
               variant={watchlistStatus ? 'secondary' : 'default'}
               className="rounded-full px-8"
@@ -144,6 +153,15 @@ export default function MovieDetails() {
           </div>
           <StreamingProviders tmdbId={id!} type="movie" />
         </div>
+
+        {playerOpen && (
+          <PlayerModal
+            id={movie.id}
+            type="movie"
+            title={movie.title}
+            onClose={() => setPlayerOpen(false)}
+          />
+        )}
 
         {/* Cast */}
         <section className="mt-12">

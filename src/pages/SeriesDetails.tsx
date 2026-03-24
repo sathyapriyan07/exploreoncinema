@@ -5,7 +5,7 @@ import { supabase } from '@/src/services/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Button } from '@/src/components/ui/button';
-import { Star, Sparkles, Tv, MessageSquare, UserCircle2, Plus, Check } from 'lucide-react';
+import { Star, Sparkles, Tv, MessageSquare, UserCircle2, Plus, Check, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -22,6 +22,7 @@ import {
 import { StreamingProviders } from '@/src/components/StreamingProviders';
 import { TrailerHero } from '@/src/components/TrailerHero';
 import { ExpandedCard } from '@/src/components/ExpandedCard';
+import { PlayerModal } from '@/src/components/player/PlayerModal';
 
 export default function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,7 @@ export default function SeriesDetails() {
   const queryClient = useQueryClient();
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
+  const [playerOpen, setPlayerOpen] = useState(false);
   const [expanded, setExpanded] = useState<{ id: number; type: 'movie' | 'tv' } | null>(null);
   const expand = (eid: number, type: 'movie' | 'tv') => setExpanded(e => e?.id === eid ? null : { id: eid, type });
 
@@ -144,6 +146,13 @@ export default function SeriesDetails() {
           <p className="text-base text-white/80 leading-relaxed mb-6">{series.overview}</p>
           <div className="flex flex-wrap gap-4 mb-4">
             <Button
+              onClick={() => setPlayerOpen(true)}
+              className="rounded-full px-8 bg-yellow-500 hover:bg-yellow-400 text-black font-bold"
+            >
+              <PlayCircle className="mr-2 h-4 w-4" />
+              Watch Now
+            </Button>
+            <Button
               onClick={() => toggleWatchlist.mutate()}
               variant={watchlistStatus ? 'secondary' : 'default'}
               className="rounded-full px-8"
@@ -154,6 +163,15 @@ export default function SeriesDetails() {
           </div>
           <StreamingProviders tmdbId={id!} type="tv" />
         </div>
+
+        {playerOpen && (
+          <PlayerModal
+            id={series.id}
+            type="tv"
+            title={series.name}
+            onClose={() => setPlayerOpen(false)}
+          />
+        )}
 
         {/* Cast */}
         <section className="mt-12">
