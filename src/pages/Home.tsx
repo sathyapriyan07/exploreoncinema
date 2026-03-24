@@ -11,40 +11,6 @@ import { supabase } from '@/src/services/supabase';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-// ─── Studios ────────────────────────────────────────────────────────────────
-const STUDIOS = [
-  { name: 'Marvel', id: '420', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Marvel_Logo.svg/320px-Marvel_Logo.svg.png' },
-  { name: 'Disney', id: '2', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Disney%2B_logo.svg/320px-Disney%2B_logo.svg.png' },
-  { name: 'DC', id: '9993', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/DC_Comics_logo.svg/320px-DC_Comics_logo.svg.png' },
-  { name: 'Pixar', id: '3', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Pixar_logo.svg/320px-Pixar_logo.svg.png' },
-  { name: 'Warner Bros', id: '174', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Warner_Bros_logo.svg/320px-Warner_Bros_logo.svg.png' },
-  { name: 'Universal', id: '33', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Universal_Pictures_logo.svg/320px-Universal_Pictures_logo.svg.png' },
-  { name: 'Sony', id: '5', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Sony_logo.svg/320px-Sony_logo.svg.png' },
-  { name: 'A24', id: '41077', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/A24_logo.svg/320px-A24_logo.svg.png' },
-];
-
-// ─── Streaming Platforms ─────────────────────────────────────────────────────
-const PLATFORMS = [
-  { name: 'Netflix', color: '#E50914', letter: 'N' },
-  { name: 'Prime Video', color: '#00A8E0', letter: 'P' },
-  { name: 'Disney+', color: '#113CCF', letter: 'D+' },
-  { name: 'Hulu', color: '#1CE783', letter: 'H' },
-  { name: 'Apple TV+', color: '#555', letter: '🍎' },
-  { name: 'HBO Max', color: '#5822B4', letter: 'HBO' },
-  { name: 'Peacock', color: '#0F69AF', letter: '🦚' },
-  { name: 'Paramount+', color: '#0064FF', letter: 'P+' },
-];
-
-// ─── Collections ─────────────────────────────────────────────────────────────
-const COLLECTIONS = [
-  { name: 'Avengers', query: 'Avengers', type: 'movie' as const },
-  { name: 'Fast & Furious', query: 'Fast Furious', type: 'movie' as const },
-  { name: 'Harry Potter', query: 'Harry Potter', type: 'movie' as const },
-  { name: 'Star Wars', query: 'Star Wars', type: 'movie' as const },
-  { name: 'Mission Impossible', query: 'Mission Impossible', type: 'movie' as const },
-  { name: 'John Wick', query: 'John Wick', type: 'movie' as const },
-];
-
 // ─── MovieRow ─────────────────────────────────────────────────────────────────
 function MovieRow({ title, data, loading, type }: { title: string; data: any; loading: boolean; type: 'movie' | 'tv' }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -150,24 +116,31 @@ function CinematicHero({ items }: { items: any[] }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent" />
 
+      {/* Clickable backdrop */}
+      <Link to={`/${type}/${current.id}`} className="absolute inset-0" />
+
       {/* Content */}
       <div className="absolute bottom-0 left-0 px-6 md:px-12 pb-24 md:pb-20 max-w-2xl">
         {logo ? (
-          <img
-            src={tmdb.getImageUrl(logo.file_path, 'original')}
-            alt={title}
-            className="h-20 md:h-28 w-auto object-contain mb-5 drop-shadow-2xl"
-            referrerPolicy="no-referrer"
-          />
+          <Link to={`/${type}/${current.id}`}>
+            <img
+              src={tmdb.getImageUrl(logo.file_path, 'original')}
+              alt={title}
+              className="h-20 md:h-28 w-auto object-contain mb-5 drop-shadow-2xl"
+              referrerPolicy="no-referrer"
+            />
+          </Link>
         ) : (
-          <h1 className="font-display text-5xl md:text-7xl font-black text-white mb-5 leading-none">{title}</h1>
+          <Link to={`/${type}/${current.id}`}>
+            <h1 className="font-display text-5xl md:text-7xl font-black text-white mb-5 leading-none hover:underline">{title}</h1>
+          </Link>
         )}
         <p className="text-sm md:text-base text-white/70 line-clamp-3 mb-6 leading-relaxed">
           {current.overview}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative z-10">
           <button
-            onClick={() => toggleWatchlist.mutate()}
+            onClick={(e) => { e.preventDefault(); toggleWatchlist.mutate(); }}
             className="flex items-center gap-2 px-7 py-3 bg-white/15 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/25 transition-colors border border-white/20"
           >
             <Plus className="h-4 w-4" />
@@ -175,7 +148,8 @@ function CinematicHero({ items }: { items: any[] }) {
           </button>
           <Link
             to={`/${type}/${current.id}`}
-            className="hidden md:flex items-center gap-2 px-7 py-3 bg-white/10 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/20 transition-colors"
+            className="flex items-center gap-2 px-7 py-3 bg-white/10 text-white backdrop-blur-md rounded-full font-bold text-sm hover:bg-white/20 transition-colors"
+            onClick={(e) => e.stopPropagation()}
           >
             <Info className="h-4 w-4" /> More Info
           </Link>
@@ -230,11 +204,9 @@ export default function Home() {
     enabled: !!user && !!supabase,
   });
 
-  const { data: popularMovies, isLoading: pmLoading } = useQuery({ queryKey: ['popularMovies'], queryFn: () => tmdb.getPopularMovies() });
-  const { data: popularSeries, isLoading: psLoading } = useQuery({ queryKey: ['popularSeries'], queryFn: () => tmdb.getPopularSeries() });
-  const { data: topMovies, isLoading: tmLoading } = useQuery({ queryKey: ['topRatedMovies'], queryFn: () => tmdb.getTopRatedMovies() });
-  const { data: topSeries, isLoading: tsLoading } = useQuery({ queryKey: ['topRatedSeries'], queryFn: () => tmdb.getTopRatedSeries() });
-  const { data: latestMovies, isLoading: lmLoading } = useQuery({ queryKey: ['nowPlaying'], queryFn: () => tmdb.getNowPlayingMovies() });
+  const { data: nowPlayingMovies, isLoading: pmLoading } = useQuery({ queryKey: ['nowPlaying'], queryFn: () => tmdb.getNowPlayingMovies() });
+  const { data: onAirSeries, isLoading: psLoading } = useQuery({ queryKey: ['onTheAir'], queryFn: () => tmdb.getOnTheAirSeries() });
+  const { data: latestMovies, isLoading: lmLoading } = useQuery({ queryKey: ['upcomingMovies'], queryFn: () => tmdb.getUpcomingMovies() });
   const { data: actionMovies, isLoading: amLoading } = useQuery({ queryKey: ['actionMovies'], queryFn: () => tmdb.getMoviesByGenre('28') });
   const { data: comedyMovies, isLoading: cmLoading } = useQuery({ queryKey: ['comedyMovies'], queryFn: () => tmdb.getMoviesByGenre('35') });
   const { data: animeMovies, isLoading: animeMLoading } = useQuery({ queryKey: ['animeMovies'], queryFn: () => tmdb.discoverMovies({ with_genres: '16', sort_by: 'popularity.desc' }) });
@@ -256,62 +228,11 @@ export default function Home() {
         )}
 
         <MovieRow title="Trending Now" data={trending} loading={trendingLoading} type="movie" />
-        <MovieRow title="Top 10 Movies" data={topMovies} loading={tmLoading} type="movie" />
-        <MovieRow title="Top 10 TV Shows" data={topSeries} loading={tsLoading} type="tv" />
-        <MovieRow title="Popular Movies" data={popularMovies} loading={pmLoading} type="movie" />
-        <MovieRow title="Popular TV Series" data={popularSeries} loading={psLoading} type="tv" />
+        <MovieRow title="Now Playing" data={nowPlayingMovies} loading={pmLoading} type="movie" />
+        <MovieRow title="Currently Streaming" data={onAirSeries} loading={psLoading} type="tv" />
+        <MovieRow title="Coming Soon" data={latestMovies} loading={lmLoading} type="movie" />
         <MovieRow title="Trending Anime" data={animeMovies} loading={animeMLoading} type="movie" />
         <MovieRow title="Popular Anime" data={animeSeries} loading={animeSLoading} type="tv" />
-
-        {/* Studios */}
-        <section className="py-10 px-6 md:px-12">
-          <h2 className="text-xl font-bold mb-6">Studios</h2>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-            {STUDIOS.map((studio) => (
-              <Link
-                key={studio.id}
-                to={`/search?q=${encodeURIComponent(studio.name)}`}
-                className="shrink-0 h-16 w-32 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center hover:border-white/30 hover:bg-zinc-800 transition-all px-4"
-              >
-                <span className="text-sm font-bold text-white/70 text-center">{studio.name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Streaming Platforms */}
-        <section className="py-6 px-6 md:px-12">
-          <h2 className="text-xl font-bold mb-6">Streaming Platforms</h2>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-            {PLATFORMS.map((p) => (
-              <div
-                key={p.name}
-                className="shrink-0 h-16 w-32 rounded-xl flex items-center justify-center font-black text-white text-lg cursor-pointer hover:scale-105 transition-transform"
-                style={{ backgroundColor: p.color + '33', border: `1px solid ${p.color}55` }}
-              >
-                <span style={{ color: p.color }}>{p.letter}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Collections */}
-        <section className="py-6 px-6 md:px-12">
-          <h2 className="text-xl font-bold mb-6">Collections</h2>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-            {COLLECTIONS.map((col) => (
-              <Link
-                key={col.name}
-                to={`/search?q=${encodeURIComponent(col.query)}`}
-                className="shrink-0 h-20 w-44 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center hover:border-white/30 hover:from-zinc-700 transition-all px-4"
-              >
-                <span className="text-sm font-bold text-white text-center">{col.name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <MovieRow title="Latest Movies" data={latestMovies} loading={lmLoading} type="movie" />
         <MovieRow title="Action Movies" data={actionMovies} loading={amLoading} type="movie" />
         <MovieRow title="Comedy Movies" data={comedyMovies} loading={cmLoading} type="movie" />
 
