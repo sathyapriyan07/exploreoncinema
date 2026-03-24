@@ -94,7 +94,7 @@ function CinematicHero({ items }: { items: any[] }) {
 
   return (
     <div
-      className="relative h-screen w-full overflow-hidden cursor-pointer"
+      className="relative h-[55vh] md:h-screen w-full overflow-hidden cursor-pointer"
       onTouchStart={(e) => { const x = e.touches[0].clientX; (e.currentTarget as any)._touchX = x; }}
       onTouchEnd={(e) => {
         const diff = (e.currentTarget as any)._touchX - e.changedTouches[0].clientX;
