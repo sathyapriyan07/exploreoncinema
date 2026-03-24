@@ -1,8 +1,7 @@
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tmdb } from '@/src/services/tmdb';
 import { ContentCard } from '@/src/components/cards/ContentCard';
-import { ExpandedCard } from '@/src/components/ExpandedCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
 import { Search as SearchIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -10,10 +9,9 @@ import { Typewriter } from '@/src/components/ui/typewriter';
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const query = searchParams.get('q') || '';
   const [inputValue, setInputValue] = useState(query);
-  const [expanded, setExpanded] = useState<{ id: number; type: 'movie' | 'tv' } | null>(null);
-  const expand = (id: number, type: 'movie' | 'tv') => setExpanded(e => e?.id === id ? null : { id, type });
 
   const { data: results, isLoading } = useQuery({
     queryKey: ['search', query],
@@ -51,7 +49,7 @@ export default function Search() {
             <Skeleton key={i} className="aspect-[2/3] w-full rounded-xl" />
           ))
         : data?.results?.filter((item: any) => item.media_type !== 'person').map((item: any) => (
-            <ContentCard key={item.id} item={item} type={item.media_type || 'movie'} onExpand={() => expand(item.id, item.media_type || 'movie')} />
+            <ContentCard key={item.id} item={item} type={item.media_type || 'movie'} onExpand={() => navigate(`/${item.media_type === 'tv' ? 'tv' : 'movie'}/${item.id}`)} />
           ))}
     </div>
   );
@@ -96,7 +94,6 @@ export default function Search() {
             Results for "{query}"
           </h2>
           {renderGrid(results, isLoading)}
-          {expanded && <ExpandedCard key={expanded.id} id={expanded.id} type={expanded.type} onClose={() => setExpanded(null)} />}
           {!isLoading && results?.results?.length === 0 && (
             <div className="text-center py-20 text-white/40">
               No results found for "{query}"
@@ -108,12 +105,10 @@ export default function Search() {
           <section>
             <h2 className="text-2xl font-bold mb-8">Latest Tamil Movies</h2>
             {renderGrid(tamilMovies, tamilLoading)}
-            {expanded && <ExpandedCard key={expanded.id} id={expanded.id} type={expanded.type} onClose={() => setExpanded(null)} />}
           </section>
           <section>
             <h2 className="text-2xl font-bold mb-8">Latest Malayalam Movies</h2>
             {renderGrid(malayalamMovies, malayalamLoading)}
-            {expanded && <ExpandedCard key={expanded.id} id={expanded.id} type={expanded.type} onClose={() => setExpanded(null)} />}
           </section>
         </div>
       )}
