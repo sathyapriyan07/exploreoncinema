@@ -1,7 +1,7 @@
 export type MediaType = 'movie' | 'tv';
 
 const BASE = 'https://www.vidking.net/embed';
-const COLOR = 'e50914'; // brand accent — change once to update everywhere
+const COLOR = '000000'; // set to black to hide Vidking's default color accent
 
 export interface VidkingOptions {
   autoPlay?: boolean;
