@@ -21,6 +21,7 @@ import {
 } from '@/src/components/ui/table';
 import { StreamingProviders } from '@/src/components/StreamingProviders';
 import { TrailerHero } from '@/src/components/TrailerHero';
+import { ExpandedCard } from '@/src/components/ExpandedCard';
 
 export default function SeriesDetails() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,8 @@ export default function SeriesDetails() {
   const queryClient = useQueryClient();
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(0);
+  const [expanded, setExpanded] = useState<{ id: number; type: 'movie' | 'tv' } | null>(null);
+  const expand = (eid: number, type: 'movie' | 'tv') => setExpanded(e => e?.id === eid ? null : { id: eid, type });
 
   const { data: series, isLoading } = useQuery({
     queryKey: ['series', id],
@@ -206,10 +209,11 @@ export default function SeriesDetails() {
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
               {series.similar.results.slice(0, 15).map((item: any) => (
                 <div key={item.id} className="w-[160px] sm:w-[200px] shrink-0">
-                  <ContentCard item={item} type="tv" />
+                  <ContentCard item={item} type="tv" onExpand={() => expand(item.id, 'tv')} />
                 </div>
               ))}
             </div>
+            {expanded && <ExpandedCard key={expanded.id} id={expanded.id} type={expanded.type} onClose={() => setExpanded(null)} />}
           </section>
         )}
 
@@ -223,10 +227,11 @@ export default function SeriesDetails() {
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
               {series.recommendations.results.slice(0, 15).map((item: any) => (
                 <div key={item.id} className="w-[160px] sm:w-[200px] shrink-0">
-                  <ContentCard item={item} type="tv" />
+                  <ContentCard item={item} type="tv" onExpand={() => expand(item.id, 'tv')} />
                 </div>
               ))}
             </div>
+            {expanded && <ExpandedCard key={expanded.id} id={expanded.id} type={expanded.type} onClose={() => setExpanded(null)} />}
           </section>
         )}
 

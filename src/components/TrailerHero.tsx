@@ -11,6 +11,7 @@ interface TrailerHeroProps {
   onEnded?: () => void;
   paused?: boolean;
   logoSize?: 'sm' | 'md';
+  noPadding?: boolean;
 }
 
 const QUALITIES = [
@@ -21,7 +22,7 @@ const QUALITIES = [
   { label: '360p', vq: 'medium' },
 ];
 
-export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded, paused, logoSize = 'md' }: TrailerHeroProps) {
+export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded, paused, logoSize = 'md', noPadding }: TrailerHeroProps) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
@@ -99,7 +100,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
 
   if (!trailer) {
     return (
-      <div ref={containerRef} className="px-4 md:px-8">
+      <div ref={containerRef} className={noPadding ? '' : 'px-4 md:px-8'}>
         <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
           <img
             src={tmdb.getImageUrl(backdrop_path, 'original')}
@@ -119,7 +120,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, on
   }
 
   return (
-    <div ref={containerRef} className="px-4 md:px-8">
+    <div ref={containerRef} className={noPadding ? '' : 'px-4 md:px-8'}>
       <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
         {!ready && <div className="absolute inset-0 z-10 bg-black" />}
         <div className="absolute inset-0 overflow-hidden" style={{ transform: `scale(${zoom})` }}>

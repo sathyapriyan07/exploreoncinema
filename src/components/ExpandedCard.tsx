@@ -34,6 +34,7 @@ export function ExpandedCard({ id, type, onClose }: Props) {
             zoom={1.4}
             logo={logoUrl}
             logoSize="sm"
+            noPadding
           />
         ) : (
           <div className="h-[200px] bg-zinc-900 animate-pulse" />
@@ -48,7 +49,7 @@ export function ExpandedCard({ id, type, onClose }: Props) {
         </button>
 
         {data && (
-          <div className="p-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="px-4 pt-3 pb-4 flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-white text-sm leading-tight line-clamp-1">{title}</h2>
               <p className="text-white/50 text-xs mt-0.5 line-clamp-2">{data.overview}</p>
