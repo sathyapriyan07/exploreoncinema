@@ -45,8 +45,8 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
 }
 
 // ─── HomeHero ─────────────────────────────────────────────────────────────────
-function HomeHero({ item, onEnded, onPrev, onNext, idx, total }: {
-  item: any; onEnded: () => void; onPrev: () => void; onNext: () => void; idx: number; total: number;
+function HomeHero({ item, onEnded, onPrev, onNext }: {
+  item: any; onEnded: () => void; onPrev: () => void; onNext: () => void;
 }) {
   const title = item.title || item.name;
   const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? item.images?.logos?.[0];
@@ -80,14 +80,7 @@ function HomeHero({ item, onEnded, onPrev, onNext, idx, total }: {
         logo={logoUrl}
         onEnded={onEnded}
       />
-      {/* Dot indicators */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-        {Array.from({ length: total }).map((_, i) => (
-          <div key={i} className={`h-1 rounded-full transition-all duration-300 ${
-            i === idx ? 'w-5 bg-white' : 'w-1.5 bg-white/30'
-          }`} />
-        ))}
-      </div>
+
     </div>
   );
 }
@@ -146,7 +139,7 @@ export default function Home() {
   return (
     <div className="bg-black pt-20">
       {currentHero ? (
-        <HomeHero key={heroIdx} item={currentHero} onEnded={next} onPrev={prev} onNext={next} idx={heroIdx} total={total} />
+        <HomeHero key={heroIdx} item={currentHero} onEnded={next} onPrev={prev} onNext={next} />
       ) : (
         <Skeleton className="h-[220px] md:h-[420px] mx-4 md:mx-8 rounded-3xl" />
       )}

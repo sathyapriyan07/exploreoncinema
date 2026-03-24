@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { Movie, TVSeries } from '@/src/types';
 import { tmdb } from '@/src/services/tmdb';
 import { Star } from 'lucide-react';
+import { CardTrailerModal } from '@/src/components/CardTrailerModal';
 
 interface ContentCardProps {
   item: Movie | TVSeries;
@@ -9,12 +10,16 @@ interface ContentCardProps {
 }
 
 export function ContentCard({ item, type }: ContentCardProps) {
+  const [open, setOpen] = useState(false);
   const title = 'title' in item ? item.title : item.name;
   const date = 'release_date' in item ? item.release_date : item.first_air_date;
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-zinc-900 shadow-lg transition-transform duration-200 will-change-transform hover:scale-105">
-      <Link to={`/${type}/${item.id}`}>
+    <>
+      <div
+        className="group relative overflow-hidden rounded-xl bg-zinc-900 shadow-lg transition-transform duration-200 will-change-transform hover:scale-105 cursor-pointer"
+        onClick={() => setOpen(true)}
+      >
         <div className="aspect-[2/3] w-full overflow-hidden">
           <img
             src={tmdb.getImageUrl(item.poster_path)}
@@ -36,7 +41,9 @@ export function ContentCard({ item, type }: ContentCardProps) {
             </div>
           </div>
         </div>
-      </Link>
-    </div>
+      </div>
+
+      {open && <CardTrailerModal id={item.id} type={type} onClose={() => setOpen(false)} />}
+    </>
   );
 }
