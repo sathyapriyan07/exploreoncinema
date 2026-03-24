@@ -8,6 +8,7 @@ import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
 import { WeatherRecommendations } from '@/src/components/WeatherRecommendations';
 import { TrailerHero } from '@/src/components/TrailerHero';
+import { ExpandedCard } from '@/src/components/ExpandedCard';
 
 // ─── MovieRow ─────────────────────────────────────────────────────────────────
 function MovieRow({ title, data, loading, type }: {
