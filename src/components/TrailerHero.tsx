@@ -8,6 +8,7 @@ interface TrailerHeroProps {
   title: string;
   zoom?: number;
   logo?: string | null;
+  onEnded?: () => void;
 }
 
 const QUALITIES = [
@@ -18,14 +19,13 @@ const QUALITIES = [
   { label: '360p', vq: 'medium' },
 ];
 
-export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo }: TrailerHeroProps) {
+export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo, onEnded }: TrailerHeroProps) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
   const [showQuality, setShowQuality] = useState(false);
   const [ready, setReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  // Track whether this is the initial load (skip postMessage on first mount)
   const initialLoad = useRef(true);
 
   const trailer =
@@ -40,14 +40,12 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo }:
     );
   };
 
-  // After iframe loads, restore mute + play state (needed after quality reload)
   const handleLoad = () => {
     if (initialLoad.current) {
       initialLoad.current = false;
       setTimeout(() => setReady(true), 1000);
       return;
     }
-    // Small delay to let the player initialise
     setTimeout(() => {
       postCommand(muted ? 'mute' : 'unMute');
       postCommand(playing ? 'playVideo' : 'pauseVideo');
@@ -65,8 +63,21 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo }:
     postCommand(playing ? 'playVideo' : 'pauseVideo');
   }, [playing]);
 
+  // Listen for YouTube player state 0 = ended
+  useEffect(() => {
+    if (!onEnded) return;
+    const handler = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'infoDelivery' && data.info?.playerState === 0) onEnded();
+      } catch {}
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onEnded]);
+
   const buildSrc = (vq: string) =>
-    `https://www.youtube.com/embed/${trailer!.key}?autoplay=1&mute=1&loop=1&playlist=${trailer!.key}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&color=white${vq ? `&vq=${vq}` : ''}`;
+    `https://www.youtube.com/embed/${trailer!.key}?autoplay=1&mute=1&loop=0&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}${vq ? `&vq=${vq}` : ''}`;
 
   if (!trailer) {
     return (
@@ -79,6 +90,11 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo }:
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+          {logo && (
+            <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
+              <img src={logo} alt={title} className="h-8 md:h-12 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -106,10 +122,10 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo }:
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-        {/* Logo overlay */}
+        {/* Logo — bottom left, small */}
         {logo && (
-          <div className="absolute bottom-6 left-6 md:left-10 z-20 pointer-events-none">
-            <img src={logo} alt={title} className="h-14 md:h-20 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+          <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
+            <img src={logo} alt={title} className="h-8 md:h-12 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
           </div>
         )}
 

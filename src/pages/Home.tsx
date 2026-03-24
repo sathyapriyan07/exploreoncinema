@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { tmdb } from '@/src/services/tmdb';
 import { ContentCard } from '@/src/components/cards/ContentCard';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { useRef } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/services/supabase';
@@ -45,8 +45,7 @@ function MovieRow({ title, data, loading, type }: { title: string; data: any; lo
 }
 
 // ─── HomeHero ─────────────────────────────────────────────────────────────────
-function HomeHero({ item }: { item: any }) {
-  const type = item?.title ? 'movie' : 'tv';
+function HomeHero({ item, onEnded }: { item: any; onEnded: () => void }) {
   const title = item.title || item.name;
   const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') ?? item.images?.logos?.[0];
   const logoUrl = logo ? tmdb.getImageUrl(logo.file_path, 'original') : null;
@@ -58,6 +57,7 @@ function HomeHero({ item }: { item: any }) {
       title={title}
       zoom={1.4}
       logo={logoUrl}
+      onEnded={onEnded}
     />
   );
 }
@@ -66,23 +66,33 @@ function HomeHero({ item }: { item: any }) {
 export default function Home() {
   const { user } = useAuth();
 
+  const [heroIdx, setHeroIdx] = useState(0);
+
   const { data: trending, isLoading: trendingLoading } = useQuery({
     queryKey: ['trending'],
     queryFn: () => tmdb.getTrending('all'),
     staleTime: 1000 * 60 * 15,
   });
 
-  const heroItem = trending?.results?.[0];
+  const top5 = trending?.results?.slice(0, 5) ?? [];
+  const heroKey = useMemo(() => top5.map((i: any) => i.id).sort().join(','), [top5]);
 
-  const { data: heroDetails } = useQuery({
-    queryKey: ['heroDetails', heroItem?.id],
+  const { data: heroItems } = useQuery({
+    queryKey: ['heroDetails', heroKey],
     queryFn: () =>
-      heroItem.media_type === 'tv'
-        ? tmdb.getSeriesDetails(String(heroItem.id))
-        : tmdb.getMovieDetails(String(heroItem.id)),
-    enabled: !!heroItem,
+      Promise.all(
+        top5.map((item: any) =>
+          item.media_type === 'tv'
+            ? tmdb.getSeriesDetails(String(item.id))
+            : tmdb.getMovieDetails(String(item.id))
+        )
+      ),
+    enabled: top5.length > 0,
     staleTime: 1000 * 60 * 15,
   });
+
+  const currentHero = heroItems?.[heroIdx];
+  const advanceHero = () => setHeroIdx(i => (i + 1) % (heroItems?.length ?? 1));
 
   const { data: continueWatching } = useQuery({
     queryKey: ['watchlist', user?.id],
@@ -104,8 +114,8 @@ export default function Home() {
 
   return (
     <div className="bg-black pt-20">
-      {heroDetails ? (
-        <HomeHero item={heroDetails} />
+      {currentHero ? (
+        <HomeHero key={heroIdx} item={currentHero} onEnded={advanceHero} />
       ) : (
         <Skeleton className="h-[220px] md:h-[420px] mx-4 md:mx-8 rounded-3xl" />
       )}
