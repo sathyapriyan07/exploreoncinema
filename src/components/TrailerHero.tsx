@@ -19,7 +19,7 @@ const QUALITIES = [
   { label: '360p', vq: 'medium' },
 ];
 
-export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo, onEnded }: TrailerHeroProps) {
+export function TrailerHero({ videos, backdrop_path, title, zoom = 1.4, logo, onEnded }: TrailerHeroProps) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [quality, setQuality] = useState(QUALITIES[0]);
@@ -92,7 +92,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo, o
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           {logo && (
             <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
-              <img src={logo} alt={title} className="h-8 md:h-12 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+              <img src={logo} alt={title} className="h-5 md:h-7 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
             </div>
           )}
         </div>
@@ -104,7 +104,7 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo, o
     <div className="px-4 md:px-8">
       <div className="relative w-full h-[220px] md:h-[420px] rounded-3xl overflow-hidden bg-black">
         {!ready && <div className="absolute inset-0 z-10 bg-black" />}
-        <div className="absolute inset-0 overflow-hidden" style={{ scale: String(zoom) }}>
+        <div className="absolute inset-0 overflow-hidden" style={{ transform: `scale(${zoom})` }}>
           <iframe
             ref={iframeRef}
             src={buildSrc(quality.vq)}
@@ -122,10 +122,10 @@ export function TrailerHero({ videos, backdrop_path, title, zoom = 1.15, logo, o
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
-        {/* Logo — bottom left, small */}
+        {/* Logo — bottom left, tiny */}
         {logo && (
           <div className="absolute bottom-5 left-6 md:left-10 z-20 pointer-events-none">
-            <img src={logo} alt={title} className="h-8 md:h-12 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
+            <img src={logo} alt={title} className="h-5 md:h-7 w-auto object-contain drop-shadow-2xl" referrerPolicy="no-referrer" />
           </div>
         )}
 
